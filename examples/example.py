@@ -6,9 +6,6 @@ This script shows how the tools of the AST MCP server can be used
 to analyze code structure and semantics.
 """
 
-import os
-import sys
-import json
 
 # Example Python code to analyze
 EXAMPLE_CODE = """
@@ -35,15 +32,15 @@ def main():
     """Main function to run the example."""
     print("AST/ASG Analysis MCP Server Example")
     print("-" * 50)
-    
+
     # In a real scenario, you would use an MCP client to connect to the server
     # For demonstration, let's show what you'd expect to see from the tools
-    
+
     print("Sample code to analyze:")
     print("-" * 50)
     print(EXAMPLE_CODE)
     print("-" * 50)
-    
+
     # Mock parse_to_ast tool call
     print("\n1. Parsing code to AST")
     print("The parse_to_ast tool would return a hierarchical tree like:")
@@ -85,7 +82,7 @@ def main():
       }
     }
     """)
-    
+
     # Mock generate_asg tool call
     print("\n2. Generating ASG")
     print("The generate_asg tool would create a graph with nodes and edges:")
@@ -107,7 +104,7 @@ def main():
       ]
     }
     """)
-    
+
     # Mock analyze_code tool call
     print("\n3. Analyzing code structure")
     print("The analyze_code tool would extract high-level structure:")
@@ -135,7 +132,7 @@ def main():
       }
     }
     """)
-    
+
     print("\nIn a real MCP client interaction, you would:")
     print("1. Connect to the AST MCP server")
     print("2. Use the tools to analyze your code")

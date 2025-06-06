@@ -8,5 +8,5 @@ pkill -f "mcp dev server.py" || true
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Start the server with the MCP inspector using uv
-cd "$DIR"
+cd "$DIR" || exit
 uv run -m mcp dev server.py

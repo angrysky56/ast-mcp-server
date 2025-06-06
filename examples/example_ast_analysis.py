@@ -9,7 +9,6 @@ using the existing tools.
 import os
 import sys
 import json
-from pathlib import Path
 
 # Add the parent directory to the path so we can import the tools
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -45,17 +44,17 @@ def main():
     """Main function to demonstrate code analysis tools."""
     print("Code Analysis Example")
     print("-" * 50)
-    
+
     # Check if parsers are initialized
     print("Initializing parsers...")
     if not init_parsers():
         print("Warning: Tree-sitter parsers not available.")
         print("This example will show what would be returned if parsers were available.")
-    
+
     # Parse the code to AST
     print("\n1. Parsing code to AST")
     ast_result = parse_code_to_ast(EXAMPLE_CODE, language="python")
-    
+
     if "error" in ast_result:
         print(f"Error parsing code: {ast_result['error']}")
         print("Showing example AST structure:")
@@ -81,7 +80,7 @@ def main():
         print(f"Language: {ast_result['language']}")
         print(f"Root node type: {ast_result['ast']['type']}")
         print(f"Number of children: {len(ast_result['ast'].get('children', []))}")
-    
+
     # Generate ASG from AST
     print("\n2. Generating ASG")
     if "error" in ast_result:
@@ -115,11 +114,11 @@ def main():
             print("\nSample edges:")
             for edge in asg_result['edges'][:3]:
                 print(f"  {edge['source']} --{edge['type']}--> {edge['target']}")
-    
+
     # Analyze code structure
     print("\n3. Analyzing code structure")
     analysis_result = analyze_code_structure(EXAMPLE_CODE, language="python")
-    
+
     if "error" in analysis_result:
         print(f"Error analyzing code: {analysis_result['error']}")
         # Show an example of what the analysis would look like
@@ -153,13 +152,13 @@ def main():
         print(f"Number of functions: {len(analysis_result['functions'])}")
         print(f"Number of classes: {len(analysis_result['classes'])}")
         print(f"Max nesting level: {analysis_result['complexity_metrics']['max_nesting_level']}")
-        
+
         if analysis_result['functions']:
             print("\nFunctions:")
             for func in analysis_result['functions']:
                 params = ", ".join(func['parameters'])
                 print(f"  {func['name']}({params}) at lines {func['location']['start_line']}-{func['location']['end_line']}")
-    
+
     print("\nIn a real Neo4j integration, you could:")
     print("1. Store AST/ASG nodes and edges in Neo4j")
     print("2. Use Cypher queries to find code patterns")
