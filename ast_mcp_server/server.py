@@ -375,7 +375,8 @@ if ENHANCED_TOOLS_AVAILABLE:
 
         return {"error": "Enhanced ASG not found. Please use generate_and_cache_enhanced_asg tool first."}
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the AST MCP Server."""
     print("Starting server initialization...")
 
     # Check if tree-sitter parsers are available
@@ -384,7 +385,7 @@ if __name__ == "__main__":
     print("Checking for tree-sitter parsers...")
     if not init_parsers():
         print("WARNING: Tree-sitter language parsers not found.")
-        print("Run 'python build_parsers.py' to build the parsers.")
+        print("Run 'uv run build-parsers' to build the parsers.")
         print("Some functionality may be limited.")
     else:
         print("Tree-sitter parsers initialized successfully!")
@@ -401,3 +402,7 @@ if __name__ == "__main__":
     print("Running MCP server...")
     mcp.run()
     print("MCP server exited.")  # This will only print if mcp.run() returns
+
+
+if __name__ == "__main__":
+    main()

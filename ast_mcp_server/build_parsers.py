@@ -113,7 +113,8 @@ def write_parser_info(languages):
         f.write("Tree-sitter language parsers are available.\n")
         f.write("LANGUAGES: " + ", ".join(languages.keys()))
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for building parsers."""
     try:
         print("Checking if required language modules are installed...")
         if not install_missing_modules():
@@ -138,3 +139,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error setting up parsers: {e}")
         exit(1)
+
+
+if __name__ == "__main__":
+    main()

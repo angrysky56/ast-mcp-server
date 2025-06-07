@@ -7,44 +7,71 @@ An MCP (Model Context Protocol) server that provides code structure and semantic
 - Parse code into Abstract Syntax Trees (AST)
 - Generate Abstract Semantic Graphs (ASG) from code
 - Analyze code structure and complexity
-- Support for multiple programming languages (Python, JavaScript)
+- Support for multiple programming languages (Python, JavaScript, TypeScript, Go, Rust, C/C++, Java)
 - Compatible with Claude Desktop and other MCP clients
 - Incremental parsing for faster processing of large files
 - Enhanced scope handling and more complete semantic analysis
 - AST diffing to identify changes between code versions
+- Resource caching for improved performance
 
 ## Installation
+
+### Prerequisites
+
+- Python 3.9 or higher
+- [uv](https://docs.astral.sh/uv/) package manager (recommended) or pip
+
+### Using uv (Recommended)
 
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/yourusername/ast-mcp-server.git
+git clone https://github.com/angrysky56/ast-mcp-server.git
 cd ast-mcp-server
 ```
 
-2. Set up the environment using `uv`:
+2. Install the project and dependencies:
 
 ```bash
-# Install uv if you don't have it already
-# pip install uv
+# Install the project in development mode with all dependencies
+uv sync
 
+# Or install with specific optional dependencies
+uv sync --extra dev  # Development tools
+uv sync --extra testing  # Testing dependencies
+uv sync --extra docs  # Documentation tools
+```
+
+3. Build the tree-sitter parsers:
+
+```bash
+uv run build-parsers
+```
+
+### Using pip (Alternative)
+
+```bash
 # Create and activate virtual environment
-uv venv
+python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
-uv pip install -r requirements.txt
-```
+pip install -e .
 
-3. Build the parsers:
-
-```bash
-uv run build_parsers.py
+# Build parsers
+python build_parsers.py
 ```
 
 ## Usage with Claude Desktop
 
-1. Configure Claude Desktop to use the server. The easiest way is to use the provided `claude_desktop_config.json` file:
+1. Configure Claude Desktop to use the server by editing your configuration file:
+
+**Location of config file:**
+- macOS: `~/Library/Application Support/claude-desktop/claude_desktop_config.json`
+- Linux: `~/.config/claude-desktop/claude_desktop_config.json`
+- Windows: `%APPDATA%\claude-desktop\claude_desktop_config.json`
+
+2. Add the AST MCP server configuration:
 
 ```json
 {
@@ -52,79 +79,84 @@ uv run build_parsers.py
     "AstAnalyzer": {
       "command": "uv",
       "args": [
-        "--directory", "/absolute/path/to/ast-mcp-server",
-        "run", "server.py"
+        "--directory",
+        "/home/ty/Repositories/ai_workspace/ast-mcp-server/ast_mcp_server",
+        "run",
+        "server.py"
       ]
     }
   }
 }
 ```
 
-2. Make sure to replace `/absolute/path/to/ast-mcp-server` with the actual absolute path on your system.
+**Important:** Replace `/absolute/path/to/ast-mcp-server` with the actual absolute path on your system.
 
-3. Add this configuration to your Claude Desktop config:
-   - On macOS: `~/Library/Application Support/claude-desktop/claude_desktop_config.json`
-   - On Linux: `~/.config/claude-desktop/claude_desktop_config.json`
-   - On Windows: `%APPDATA%\claude-desktop\claude_desktop_config.json`
+3. Restart Claude Desktop to load the new MCP server.
 
-4. Restart Claude Desktop to load the new MCP server.
+4. In Claude Desktop, you can now use the AST-based code analysis tools by referencing code files or pasting code snippets.
 
-5. In Claude Desktop, you can now use the AST-based code analysis tools.
+## Development
 
-The AST MCP Server is working correctly. Here's a summary of the features I've verified:
+### Development Environment Setup
 
-Basic AST Parsing ✓
+```bash
+# Install with development dependencies
+uv sync --extra dev
 
-Successfully parsed Python code into a detailed abstract syntax tree
-The structure shows proper node hierarchy with types, positions, and content
+# Install pre-commit hooks (optional)
+uv run pre-commit install
+```
 
-ASG Generation ✓
-
-Generated an Abstract Semantic Graph with nodes and edges
-The graph correctly shows relationships between components
-
-Code Analysis ✓
-
-Successfully analyzed code structure, identifying:
-
-Functions (with names, locations, and parameters)
-Classes
-Complexity metrics
-
-Resource Caching ✓
-
-The parse_and_cache function worked correctly
-A URI was generated for retrieving the parsed AST later
-
-Multi-language Support ✓
-
-Successfully parsed both Python and JavaScript code
-The supported_languages tool confirmed Python and JavaScript are available
-
-
-The server is fully operational and all key functionality works as expected. When integrated with Claude Desktop using the updated configuration in claude_desktop_config.json, it will provide powerful code analysis capabilities.
-
-## Development and Testing
+### Running in Development Mode
 
 To run the server in development mode with the MCP inspector:
 
 ```bash
-# Using the included script
-./dev_server.sh
+# Using uv
+uv run --extra dev -- -m mcp dev server.py
 
-# Or manually
-uv run -m mcp dev server.py
+# Or using the development script
+./dev_server.sh
+```
+
+### Testing
+
+```bash
+# Run all tests
+uv run --extra testing pytest
+
+# Run tests with coverage
+uv run --extra testing pytest --cov=ast_mcp_server --cov-report=html
+
+# Run specific tests
+uv run --extra testing pytest tests/test_specific.py
+```
+
+### Code Quality
+
+```bash
+# Format code
+uv run black .
+uv run isort .
+
+# Lint code
+uv run flake8 .
+
+# Type checking
+uv run mypy ast_mcp_server/
 ```
 
 ## Available Tools
 
-The server provides the following tools:
+The server provides the following tools for code analysis:
 
 ### Basic Tools
 - `parse_to_ast`: Parse code into an Abstract Syntax Tree
 - `generate_asg`: Generate an Abstract Semantic Graph from code
 - `analyze_code`: Analyze code structure and complexity
 - `supported_languages`: Get the list of supported programming languages
+
+### Caching Tools
 - `parse_and_cache`: Parse code into an AST and cache it for resource access
 - `generate_and_cache_asg`: Generate an ASG and cache it for resource access
 - `analyze_and_cache`: Analyze code and cache the results for resource access
@@ -138,31 +170,131 @@ The server provides the following tools:
 - `generate_and_cache_enhanced_asg`: Generate an enhanced ASG and cache it
 - `ast_diff_and_cache`: Generate an AST diff and cache it
 
-## Adding More Language Support
+## Adding Language Support
 
-To add support for additional languages:
+To add support for additional programming languages:
 
 1. Install the corresponding tree-sitter language package:
 
 ```bash
-uv pip install tree-sitter-<language>
+uv add tree-sitter-<language>
 ```
 
 2. Update the `LANGUAGE_MODULES` dictionary in `build_parsers.py` and `ast_mcp_server/tools.py`.
 
-3. Run `uv run build_parsers.py` to initialize the new language.
+3. Build the parsers:
+
+```bash
+uv run build-parsers
+```
+
+### Currently Supported Languages
+
+- **Python** (`tree-sitter-python`)
+- **JavaScript** (`tree-sitter-javascript`)
+- **TypeScript** (`tree-sitter-typescript`)
+- **Go** (`tree-sitter-go`)
+- **Rust** (`tree-sitter-rust`)
+- **C** (`tree-sitter-c`)
+- **C++** (`tree-sitter-cpp`)
+- **Java** (`tree-sitter-java`)
 
 ## How It Works
 
-The AST MCP Server connects with Claude Desktop through the Model Context Protocol (MCP). When launched:
+The AST MCP Server connects with Claude Desktop through the Model Context Protocol (MCP):
 
-1. Claude Desktop starts the server using `uv run` with the appropriate working directory
-2. The server loads tree-sitter language modules for parsing various programming languages
-3. It registers tools and resources with the MCP protocol
-4. Claude can then access these tools to analyze code you share in the chat
+1. **Initialization**: Claude Desktop starts the server using `uv run` with the appropriate working directory
+2. **Language Loading**: The server loads tree-sitter language modules for parsing various programming languages
+3. **MCP Registration**: It registers tools and resources with the MCP protocol
+4. **Analysis**: Claude can access these tools to analyze code you share in the chat
+5. **Caching**: Results are cached locally for improved performance
 
-All tool execution happens locally on your machine, with results returned to Claude for interpretation.
+All tool execution happens locally on your machine, with results returned to Claude for interpretation and assistance.
+
+## Configuration Files
+
+- **`pyproject.toml`**: Project metadata, dependencies, and tool configuration
+- **`claude_desktop_config.json`**: Example Claude Desktop configuration
+- **`dev_server.sh`**: Development server script
+- **`.gitignore`**: Git ignore rules
+
+## Directory Structure
+
+```
+ast-mcp-server/
+├── ast_mcp_server/          # Main package
+│   ├── __init__.py
+│   ├── tools.py             # Core AST/ASG tools
+│   ├── enhanced_tools.py    # Enhanced analysis features
+│   ├── resources.py         # MCP resource handlers
+│   └── parsers/             # Tree-sitter parser cache
+├── examples/                # Usage examples
+├── tests/                   # Test suite
+├── server.py                # Main server entry point
+├── build_parsers.py         # Parser setup script
+├── pyproject.toml           # Project configuration
+└── README.md               # This file
+```
+
+## Troubleshooting
+
+### Parser Issues
+
+If you encounter parser-related errors:
+
+```bash
+# Rebuild parsers
+uv run build-parsers
+
+# Check for missing language packages
+uv add tree-sitter-python tree-sitter-javascript
+```
+
+### Claude Desktop Connection Issues
+
+1. Verify the absolute path in your Claude Desktop configuration
+2. Ensure uv is in your system PATH
+3. Check Claude Desktop logs for error messages
+4. Restart Claude Desktop after configuration changes
+
+### Performance Issues
+
+- Use incremental parsing tools for large files
+- Enable caching for repeated analysis
+- Consider analyzing smaller code sections
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes with proper tests
+4. Run the test suite: `uv run pytest`
+5. Submit a pull request
+
+### Development Guidelines
+
+- Follow PEP 8 style guidelines (enforced by black and flake8)
+- Add type hints to all public functions
+- Include docstrings for all modules, classes, and functions
+- Write tests for new functionality
+- Update documentation as needed
 
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Changelog
+
+### v0.2.0
+- Added pyproject.toml configuration
+- Improved uv compatibility
+- Enhanced caching system
+- Added incremental parsing support
+- Expanded language support
+- Better error handling and logging
+
+### v0.1.0
+- Initial release
+- Basic AST/ASG parsing
+- Claude Desktop integration
+- Support for Python and JavaScript
