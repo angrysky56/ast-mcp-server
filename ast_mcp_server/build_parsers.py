@@ -17,15 +17,13 @@ os.makedirs(PARSERS_PATH, exist_ok=True)
 LANGUAGE_MODULES = {
     "python": "tree_sitter_python",
     "javascript": "tree_sitter_javascript",
+    "typescript": "tree_sitter_typescript",
+    "go": "tree_sitter_go",
+    "rust": "tree_sitter_rust",
+    "c": "tree_sitter_c",
+    "cpp": "tree_sitter_cpp",
+    "java": "tree_sitter_java",
 }
-
-# Additional languages to install if needed (commented out until needed)
-# "typescript": "tree_sitter_typescript",
-# "go": "tree_sitter_go",
-# "rust": "tree_sitter_rust",
-# "c": "tree_sitter_c",
-# "cpp": "tree_sitter_cpp",
-# "java": "tree_sitter_java",
 
 def install_missing_modules():
     """Install any missing tree-sitter language modules."""
@@ -36,43 +34,43 @@ def install_missing_modules():
             print(f"✓ {module_name} is already installed")
         except ImportError:
             missing_modules.append(module_name)
-    
+
     if missing_modules:
         print(f"The following modules need to be installed: {', '.join(missing_modules)}")
         print("Please install them using:")
         print(f"pip install {' '.join(missing_modules)}")
         return False
-    
+
     return True
 
 def setup_languages():
     """Setup tree-sitter languages and test them."""
     languages = {}
-    
+
     for lang_name, module_name in LANGUAGE_MODULES.items():
         try:
             # Import the language module
             module = importlib.import_module(module_name)
-            
+
             # Get the language object
             lang = Language(module.language())
             languages[lang_name] = lang
             print(f"Successfully loaded {lang_name} language")
         except Exception as e:
             print(f"Error loading {lang_name} language: {e}")
-    
+
     return languages
 
 def test_parsers(languages):
     """Test that the parsers work correctly."""
     success = True
-    
+
     for lang_name, language in languages.items():
         try:
             # Create a parser for this language
             parser = Parser()
             parser.language = language
-            
+
             # Create a simple test snippet for each language
             if lang_name == "python":
                 test_code = b"def hello(): print('world')"
@@ -90,20 +88,20 @@ def test_parsers(languages):
                 test_code = b"class Main { public static void main(String[] args) { System.out.println(\"Hello World\"); } }"
             else:
                 test_code = b"// Test code for " + lang_name.encode()
-            
+
             # Parse the code and get the AST
             tree = parser.parse(test_code)
             root_node = tree.root_node
-            
+
             print(f"Successfully tested {lang_name} parser")
             print(f"  Root node type: {root_node.type}")
             print(f"  Tree structure: {root_node}")
             print("-" * 50)
-            
+
         except Exception as e:
             print(f"Error testing {lang_name} parser: {e}")
             success = False
-    
+
     return success
 
 def write_parser_info(languages):
@@ -120,14 +118,14 @@ def main():
         if not install_missing_modules():
             print("Please install the missing language modules and try again.")
             exit(1)
-        
+
         print("Setting up tree-sitter languages...")
         languages = setup_languages()
-        
+
         if not languages:
             print("No languages were loaded successfully.")
             exit(1)
-        
+
         print("Testing parsers...")
         if test_parsers(languages):
             print("All parsers tested successfully!")

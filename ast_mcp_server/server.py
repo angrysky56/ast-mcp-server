@@ -25,6 +25,14 @@ except ImportError:
     register_enhanced_tools = None
     ENHANCED_TOOLS_AVAILABLE = False
 
+# Import our transformation tools
+try:
+    from ast_mcp_server.transformation_tools import register_transformation_tools
+    TRANSFORMATION_TOOLS_AVAILABLE = True
+except ImportError:
+    register_transformation_tools = None
+    TRANSFORMATION_TOOLS_AVAILABLE = False
+
 # Initialize the MCP server
 mcp = FastMCP(
     "AstAnalyzer",
@@ -38,6 +46,10 @@ register_tools(mcp)
 # Register enhanced tools if available
 if ENHANCED_TOOLS_AVAILABLE and register_enhanced_tools is not None:
     register_enhanced_tools(mcp)
+
+# Register transformation tools if available
+if TRANSFORMATION_TOOLS_AVAILABLE and register_transformation_tools is not None:
+    register_transformation_tools(mcp)
 
 # Register resources with the server
 register_resources(mcp)
@@ -396,6 +408,12 @@ def main():
     else:
         print("Enhanced tools module not found. Only basic functionality is available.")
         print("Create ast_mcp_server/enhanced_tools.py to enable advanced features.")
+
+    # Report on transformation tools availability  
+    if TRANSFORMATION_TOOLS_AVAILABLE:
+        print("Code transformation tools (ast-grep integration) are available.")
+    else:
+        print("Transformation tools not available. Install ast-grep-cli for code transformation features.")
 
     # Start the MCP server
     print("Starting AST/ASG Code Analysis MCP Server...")
