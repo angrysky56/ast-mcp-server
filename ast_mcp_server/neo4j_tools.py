@@ -76,7 +76,7 @@ def register_neo4j_tools(mcp_server: Any) -> None:
         return results
 
     @mcp_server.tool()
-    def query_graph(
+    def query_neo4j_graph(
         query: str, parameters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
