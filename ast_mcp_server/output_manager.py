@@ -10,7 +10,6 @@ Saves analyses to structured folders with logical section breakdown:
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -44,8 +43,8 @@ class AnalysisOutputManager:
         ast_data: Dict[str, Any],
         asg_data: Optional[Dict[str, Any]] = None,
         structure_data: Optional[Dict[str, Any]] = None,
-        code: Optional[str] = None
-    ) -> Dict[str, str]:
+        code: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Save analysis to logical section files and return paths.
 
@@ -85,8 +84,8 @@ class AnalysisOutputManager:
                 "summary": {
                     "total_functions": len(structure_data.get("functions", [])),
                     "total_classes": len(structure_data.get("classes", [])),
-                    "total_imports": len(structure_data.get("imports", []))
-                }
+                    "total_imports": len(structure_data.get("imports", [])),
+                },
             }
             self._save_json(folder / "structure.json", metrics)
             files_created.append("structure.json")
@@ -99,7 +98,7 @@ class AnalysisOutputManager:
                 "total_nodes": len(asg_data.get("nodes", [])),
                 "total_edges": len(asg_data.get("edges", [])),
                 "root": asg_data.get("root"),
-                "edge_types": self._count_edge_types(asg_data.get("edges", []))
+                "edge_types": self._count_edge_types(asg_data.get("edges", [])),
             }
             self._save_json(folder / "semantic_graph.json", graph_summary)
             files_created.append("semantic_graph.json")
@@ -117,7 +116,7 @@ class AnalysisOutputManager:
             "analyzed_at": datetime.now().isoformat(),
             "language": ast_data.get("language") if ast_data else "unknown",
             "files_created": files_created,
-            "output_folder": str(folder)
+            "output_folder": str(folder),
         }
         self._save_json(folder / "metadata.json", metadata)
 
@@ -126,7 +125,7 @@ class AnalysisOutputManager:
             "files_created": files_created,
             "structure_file": str(folder / "structure.json"),
             "functions_file": str(folder / "functions.json"),
-            "classes_file": str(folder / "classes.json")
+            "classes_file": str(folder / "classes.json"),
         }
 
     def _format_functions(self, functions: List[Dict]) -> Dict[str, Any]:
@@ -140,7 +139,7 @@ class AnalysisOutputManager:
                     "location": f.get("location", {}),
                 }
                 for f in functions
-            ]
+            ],
         }
 
     def _format_classes(self, classes: List[Dict]) -> Dict[str, Any]:
@@ -153,7 +152,7 @@ class AnalysisOutputManager:
                     "location": c.get("location", {}),
                 }
                 for c in classes
-            ]
+            ],
         }
 
     def _format_imports(self, imports: List[Dict]) -> Dict[str, Any]:
@@ -166,7 +165,7 @@ class AnalysisOutputManager:
                     "line": i.get("line", 0),
                 }
                 for i in imports
-            ]
+            ],
         }
 
     def _count_edge_types(self, edges: List[Dict]) -> Dict[str, int]:

@@ -6,17 +6,17 @@ This script shows how to parse code into AST and ASG, and perform code analysis
 using the existing tools.
 """
 
+import json
 import os
 import sys
-import json
 
 # Add the parent directory to the path so we can import the tools
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ast_mcp_server.tools import (
-    parse_code_to_ast,
-    create_asg_from_ast,
     analyze_code_structure,
-    init_parsers
+    create_asg_from_ast,
+    init_parsers,
+    parse_code_to_ast,
 )
 
 # Example Python code to analyze
@@ -40,7 +40,8 @@ result = factorial(5)
 print(f"Factorial of 5 is {result}")
 """
 
-def main():
+
+def main() -> None:
     """Main function to demonstrate code analysis tools."""
     print("Code Analysis Example")
     print("-" * 50)
@@ -49,7 +50,9 @@ def main():
     print("Initializing parsers...")
     if not init_parsers():
         print("Warning: Tree-sitter parsers not available.")
-        print("This example will show what would be returned if parsers were available.")
+        print(
+            "This example will show what would be returned if parsers were available."
+        )
 
     # Parse the code to AST
     print("\n1. Parsing code to AST")
@@ -69,9 +72,12 @@ def main():
                     {"type": "function_definition", "text": "def factorial(n):..."},
                     {"type": "function_definition", "text": "def fibonacci(n):..."},
                     {"type": "expression_statement", "text": "result = factorial(5)"},
-                    {"type": "expression_statement", "text": "print(f\"Factorial of 5 is {result}\")"}
-                ]
-            }
+                    {
+                        "type": "expression_statement",
+                        "text": 'print(f"Factorial of 5 is {result}")',
+                    },
+                ],
+            },
         }
         print(json.dumps(example_ast, indent=2))
     else:
@@ -90,14 +96,30 @@ def main():
             "language": "python",
             "nodes": [
                 {"id": "module_0_340", "type": "module", "text": "..."},
-                {"id": "function_definition_1_82", "type": "function_definition", "text": "def factorial(n):..."},
-                {"id": "identifier_5_14", "type": "identifier", "text": "factorial"}
+                {
+                    "id": "function_definition_1_82",
+                    "type": "function_definition",
+                    "text": "def factorial(n):...",
+                },
+                {"id": "identifier_5_14", "type": "identifier", "text": "factorial"},
             ],
             "edges": [
-                {"source": "module_0_340", "target": "function_definition_1_82", "type": "contains"},
-                {"source": "function_definition_1_82", "target": "identifier_5_14", "type": "contains"},
-                {"source": "identifier_243_252", "target": "function_definition_1_82", "type": "calls"}
-            ]
+                {
+                    "source": "module_0_340",
+                    "target": "function_definition_1_82",
+                    "type": "contains",
+                },
+                {
+                    "source": "function_definition_1_82",
+                    "target": "identifier_5_14",
+                    "type": "contains",
+                },
+                {
+                    "source": "identifier_243_252",
+                    "target": "function_definition_1_82",
+                    "type": "calls",
+                },
+            ],
         }
         print(json.dumps(example_asg, indent=2))
     else:
@@ -106,13 +128,13 @@ def main():
         print(f"Number of nodes: {len(asg_result['nodes'])}")
         print(f"Number of edges: {len(asg_result['edges'])}")
         # Print a few sample nodes and edges
-        if asg_result['nodes']:
+        if asg_result["nodes"]:
             print("\nSample nodes:")
-            for node in asg_result['nodes'][:3]:
+            for node in asg_result["nodes"][:3]:
                 print(f"  {node['id']} ({node['type']}): {node['text'][:30]}...")
-        if asg_result['edges']:
+        if asg_result["edges"]:
             print("\nSample edges:")
-            for edge in asg_result['edges'][:3]:
+            for edge in asg_result["edges"][:3]:
                 print(f"  {edge['source']} --{edge['type']}--> {edge['target']}")
 
     # Analyze code structure
@@ -129,20 +151,17 @@ def main():
                 {
                     "name": "factorial",
                     "location": {"start_line": 2, "end_line": 6},
-                    "parameters": ["n"]
+                    "parameters": ["n"],
                 },
                 {
                     "name": "fibonacci",
                     "location": {"start_line": 8, "end_line": 14},
-                    "parameters": ["n"]
-                }
+                    "parameters": ["n"],
+                },
             ],
             "classes": [],
             "imports": [],
-            "complexity_metrics": {
-                "max_nesting_level": 2,
-                "total_nodes": 67
-            }
+            "complexity_metrics": {"max_nesting_level": 2, "total_nodes": 67},
         }
         print(json.dumps(example_analysis, indent=2))
     else:
@@ -151,19 +170,24 @@ def main():
         print(f"Code length: {analysis_result['code_length']} bytes")
         print(f"Number of functions: {len(analysis_result['functions'])}")
         print(f"Number of classes: {len(analysis_result['classes'])}")
-        print(f"Max nesting level: {analysis_result['complexity_metrics']['max_nesting_level']}")
+        print(
+            f"Max nesting level: {analysis_result['complexity_metrics']['max_nesting_level']}"
+        )
 
-        if analysis_result['functions']:
+        if analysis_result["functions"]:
             print("\nFunctions:")
-            for func in analysis_result['functions']:
-                params = ", ".join(func['parameters'])
-                print(f"  {func['name']}({params}) at lines {func['location']['start_line']}-{func['location']['end_line']}")
+            for func in analysis_result["functions"]:
+                params = ", ".join(func["parameters"])
+                print(
+                    f"  {func['name']}({params}) at lines {func['location']['start_line']}-{func['location']['end_line']}"
+                )
 
     print("\nIn a real Neo4j integration, you could:")
     print("1. Store AST/ASG nodes and edges in Neo4j")
     print("2. Use Cypher queries to find code patterns")
     print("3. Identify complex functions, unused imports, etc.")
     print("4. Visualize code structure and dependencies")
+
 
 if __name__ == "__main__":
     main()

@@ -226,7 +226,7 @@ def create_asg_from_ast(ast_data: Dict) -> Dict:
     nodes = []
     edges = []
 
-    def extract_nodes(node, parent_id=None):
+    def extract_nodes(node: Dict, parent_id: Optional[str] = None) -> str:
         node_id = f"{node['type']}_{node['start_byte']}_{node['end_byte']}"
 
         # Add the node
@@ -417,7 +417,7 @@ def analyze_code_structure(
     ast = ast_data["ast"]
 
     # Collect structure information
-    structure = {
+    structure: Dict[str, Any] = {
         "language": language,
         "code_length": len(code),
         "functions": [],

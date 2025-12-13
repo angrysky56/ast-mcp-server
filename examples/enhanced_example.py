@@ -7,9 +7,6 @@ code structure and semantic analysis, with proper scope handling
 and performance optimizations.
 """
 
-import sys
-import json
-from pprint import pprint
 
 # Example Python code to analyze - a bit more complex to showcase scope handling
 EXAMPLE_CODE = """
@@ -29,15 +26,15 @@ def factorial(n):
 class MathUtils:
     # Class variable
     description = "Utility class for math operations"
-    
+
     def __init__(self, name):
         # Instance variable
         self.name = name
-        
+
     def compute_factorial(self, n):
         # Method calls global function
         return factorial(n)
-        
+
     @staticmethod
     def is_prime(n):
         # Static method with its own scope
@@ -75,20 +72,20 @@ def factorial(n):
 class MathUtils:
     # Class variable
     description = "Enhanced utility class for math operations"  # Changed description
-    
+
     def __init__(self, name):
         # Instance variable
         self.name = name
         self.created_at = "2025-04-25"  # Added new instance variable
-        
+
     def compute_factorial(self, n):
         # Method calls global function
         return factorial(n)
-    
-    # Added a new method    
+
+    # Added a new method
     def compute_square(self, n):
         return n * n
-        
+
     @staticmethod
     def is_prime(n):
         # Improved prime check algorithm
@@ -116,19 +113,20 @@ print(f"Is 7 prime? {result2}")
 print(f"Square of 4 is {result3}")  # Added print statement
 """
 
-def main():
+
+def main() -> None:
     """Main function to demonstrate the enhanced AST MCP server features."""
     print("Enhanced AST/ASG Analysis MCP Server Example")
     print("-" * 60)
-    
+
     # In a real scenario, you would use an MCP client to connect to the server
     # For demonstration, let's show what you'd expect to see from the enhanced tools
-    
+
     print("Sample code to analyze:")
     print("-" * 60)
     print(EXAMPLE_CODE[:300] + "...")  # Show just the beginning for brevity
     print("-" * 60)
-    
+
     # 1. Enhanced ASG Generation
     print("\n1. Generating Enhanced ASG")
     print("The generate_enhanced_asg tool would create a more complete graph with:")
@@ -136,9 +134,10 @@ def main():
     print("  - Complete variable definition and reference edges")
     print("  - Control flow edges between code blocks")
     print("  - Data flow edges showing dependencies")
-    
+
     print("\nExample scope hierarchy detected:")
-    print("""
+    print(
+        """
     global                        // Global scope
     |
     ├── function:factorial       // Function scope
@@ -149,10 +148,12 @@ def main():
         ├── method:compute_factorial
         └── method:is_prime
             └── for:i            // Loop scope inside method
-    """)
-    
+    """
+    )
+
     print("\nExample semantic edges detected:")
-    print("""
+    print(
+        """
     - CONTAINS: module → global_var, factorial, MathUtils, ...
     - DEFINES: global scope → global_var
     - DEFINES: factorial → result, i
@@ -160,17 +161,19 @@ def main():
     - CALLS: math_utils.compute_factorial → factorial
     - CONTROL_FLOW: for → block (inside factorial)
     - DATA_FLOW: result *= i → result, i
-    """)
-    
+    """
+    )
+
     # 2. Incremental Parsing and AST Diff
     print("\n2. Incremental Parsing and AST Diff")
     print("When code is modified, parse_to_ast_incremental and diff_ast tools would:")
     print("  - Only parse the changed parts of the code (much faster for large files)")
     print("  - Return only the nodes that changed")
     print("  - Highlight the specific changes between versions")
-    
+
     print("\nExample of changes detected:")
-    print("""
+    print(
+        """
     - MODIFIED: MathUtils.description = "Enhanced utility class for math operations"
     - ADDED: self.created_at = "2025-04-25" in MathUtils.__init__
     - ADDED: compute_square method to MathUtils class
@@ -178,28 +181,36 @@ def main():
     - MODIFIED: MathUtils instance name to "My Enhanced Math Utils"
     - ADDED: result3 = math_utils.compute_square(4)
     - ADDED: print(f"Square of 4 is {result3}")
-    """)
-    
+    """
+    )
+
     # 3. Finding nodes at specific positions
     print("\n3. Finding Nodes at Positions")
     print("The find_node_at_position tool would help locate specific elements:")
     print("  - Find what function or variable is at a cursor position")
     print("  - Identify the scope a particular code belongs to")
     print("  - Navigate and refactor code more precisely")
-    
+
     print("\nExample results:")
-    print("""
+    print(
+        """
     - Position (3, 10): function_definition "factorial"
     - Position (22, 15): method_definition "compute_factorial"
     - Position (40, 20): call "math_utils.compute_factorial"
-    """)
-    
+    """
+    )
+
     print("\nIn a real MCP client interaction, you would:")
     print("1. Connect to the Enhanced AST MCP server")
     print("2. Use the enhanced tools for more accurate code analysis")
     print("3. Get the benefits of proper scope handling and performance optimizations")
-    print("4. Use the results to improve code understanding, refactoring, or generation")
-    print("5. Experience much faster processing for large codebases with incremental updates")
+    print(
+        "4. Use the results to improve code understanding, refactoring, or generation"
+    )
+    print(
+        "5. Experience much faster processing for large codebases with incremental updates"
+    )
+
 
 if __name__ == "__main__":
     main()

@@ -28,7 +28,8 @@ result = factorial(5)
 print(f"Factorial of 5 is {result}")
 """
 
-def main():
+
+def main() -> None:
     """Main function to run the example."""
     print("AST/ASG Analysis MCP Server Example")
     print("-" * 50)
@@ -44,7 +45,8 @@ def main():
     # Mock parse_to_ast tool call
     print("\n1. Parsing code to AST")
     print("The parse_to_ast tool would return a hierarchical tree like:")
-    print("""
+    print(
+        """
     {
       "language": "python",
       "ast": {
@@ -81,12 +83,14 @@ def main():
         ]
       }
     }
-    """)
+    """
+    )
 
     # Mock generate_asg tool call
     print("\n2. Generating ASG")
     print("The generate_asg tool would create a graph with nodes and edges:")
-    print("""
+    print(
+        """
     {
       "language": "python",
       "nodes": [
@@ -103,12 +107,14 @@ def main():
         # ... more edges including semantic relationships like "calls" and "references" ...
       ]
     }
-    """)
+    """
+    )
 
     # Mock analyze_code tool call
     print("\n3. Analyzing code structure")
     print("The analyze_code tool would extract high-level structure:")
-    print("""
+    print(
+        """
     {
       "language": "python",
       "code_length": 340,
@@ -131,13 +137,15 @@ def main():
         "total_nodes": 67
       }
     }
-    """)
+    """
+    )
 
     print("\nIn a real MCP client interaction, you would:")
     print("1. Connect to the AST MCP server")
     print("2. Use the tools to analyze your code")
     print("3. Get back structured information about code syntax and semantics")
     print("4. Use that information to improve code understanding and generation")
+
 
 if __name__ == "__main__":
     main()

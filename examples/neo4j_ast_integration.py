@@ -6,32 +6,42 @@ This script demonstrates how to integrate AST/ASG analysis with Neo4j
 for advanced code structure queries and analysis.
 """
 
+import hashlib
 import os
 import sys
-import hashlib
+from typing import Any, Dict, List, Optional
 
 # Add the parent directory to the path so we can import the tools
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ast_mcp_server.tools import (
-    parse_code_to_ast,
-    create_asg_from_ast,
     analyze_code_structure,
-    init_parsers
+    create_asg_from_ast,
+    init_parsers,
+    parse_code_to_ast,
 )
 
 # Try to import Neo4j driver
 try:
     from neo4j import GraphDatabase
+
     NEO4J_AVAILABLE = True
 except ImportError:
     NEO4J_AVAILABLE = False
     GraphDatabase = None  # Define GraphDatabase as None when import fails
     print("Warning: Neo4j driver not available. Install with 'pip install neo4j'")
 
+
 class AstNeo4jIntegration:
     """Integration class for AST/ASG analysis with Neo4j."""
 
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", db="neo4j"):
+    # trunk-ignore(bandit/B107)
+    def __init__(
+        self,
+        uri: str = "bolt://localhost:7687",
+        user: str = "neo4j",
+        password: str = "password",
+        db: str = "neo4j",
+    ) -> None:
         """Initialize the Neo4j connection."""
         self.uri = uri
         self.user = user
@@ -58,7 +68,10 @@ class AstNeo4jIntegration:
                 self.driver = None
         else:
             print("⚠️ Neo4j integration disabled (driver not available)")
-    def store_ast_in_neo4j(self, ast_data, file_path):
+
+    def store_ast_in_neo4j(
+        self, ast_data: Dict[str, Any], file_path: str
+    ) -> Optional[None]:
         """
         Store AST data in Neo4j for querying.
 
@@ -75,7 +88,9 @@ class AstNeo4jIntegration:
 
         # Generate a unique ID for this AST
         file_name = os.path.basename(file_path)
-        ast_id = hashlib.md5(f"{file_path}:{ast_data['language']}".encode()).hexdigest()
+        ast_id = hashlib.md5(
+            f"{file_path}:{ast_data['language']}".encode(), usedforsecurity=False
+        ).hexdigest()
 
         # Create statements
         with self.driver.session(database=self.db) as session:
@@ -88,7 +103,7 @@ class AstNeo4jIntegration:
                 """,
                 path=file_path,
                 name=file_name,
-                language=ast_data["language"]
+                language=ast_data["language"],
             )
 
             # Create AST node
@@ -102,11 +117,12 @@ class AstNeo4jIntegration:
                 """,
                 path=file_path,
                 ast_id=ast_id,
-                language=ast_data["language"]
+                language=ast_data["language"],
             )
 
-
-    def _add_ast_node_to_neo4j(self, session, ast_id, parent_id, node):
+    def _add_ast_node_to_neo4j(
+        self, session: Any, ast_id: str, parent_id: Optional[str], node: Dict[str, Any]
+    ) -> None:
         """Add an AST node to Neo4j recursively."""
         # Generate a unique ID for this node
         node_id = f"{ast_id}_{node['type']}_{node['start_byte']}_{node['end_byte']}"
@@ -135,7 +151,7 @@ class AstNeo4jIntegration:
             start_line=node["start_point"]["row"],
             start_col=node["start_point"]["column"],
             end_line=node["end_point"]["row"],
-            end_col=node["end_point"]["column"]
+            end_col=node["end_point"]["column"],
         )
 
         # Link to parent if exists
@@ -147,14 +163,17 @@ class AstNeo4jIntegration:
                 MERGE (p)-[:HAS_CHILD]->(n)
                 """,
                 parent_id=parent_id,
-                node_id=node_id
+                node_id=node_id,
             )
 
         # Process children
         if "children" in node:
             for child in node["children"]:
                 self._add_ast_node_to_neo4j(session, ast_id, node_id, child)
-    def store_asg_in_neo4j(self, asg_data, file_path):
+
+    def store_asg_in_neo4j(
+        self, asg_data: Dict[str, Any], file_path: str
+    ) -> Optional[str]:
         """
         Store ASG data in Neo4j for querying.
 
@@ -171,7 +190,9 @@ class AstNeo4jIntegration:
 
         # Generate a unique ID for this ASG
         file_name = os.path.basename(file_path)
-        asg_id = hashlib.md5(f"{file_path}:{asg_data['language']}:asg".encode()).hexdigest()
+        asg_id = hashlib.md5(
+            f"{file_path}:{asg_data['language']}:asg".encode(), usedforsecurity=False
+        ).hexdigest()
 
         with self.driver.session(database=self.db) as session:
             # Create file node if not exists
@@ -183,7 +204,7 @@ class AstNeo4jIntegration:
                 """,
                 path=file_path,
                 name=file_name,
-                language=asg_data["language"]
+                language=asg_data["language"],
             )
 
             # Create ASG node
@@ -196,7 +217,7 @@ class AstNeo4jIntegration:
                 """,
                 path=file_path,
                 asg_id=asg_id,
-                language=asg_data["language"]
+                language=asg_data["language"],
             )
 
             # Add nodes
@@ -224,7 +245,7 @@ class AstNeo4jIntegration:
                     start_line=node.get("start_line", 0),
                     start_col=node.get("start_col", 0),
                     end_line=node.get("end_line", 0),
-                    end_col=node.get("end_col", 0)
+                    end_col=node.get("end_col", 0),
                 )
 
             # Add edges
@@ -237,13 +258,15 @@ class AstNeo4jIntegration:
                     """,
                     source_id=edge["source"],
                     target_id=edge["target"],
-                    edge_type=edge["type"]
+                    edge_type=edge["type"],
                 )
 
             print(f"✅ Stored ASG in Neo4j with ID: {asg_id}")
             return asg_id
 
-    def store_analysis_in_neo4j(self, analysis_data, file_path):
+    def store_analysis_in_neo4j(
+        self, analysis_data: Dict[str, Any], file_path: str
+    ) -> Optional[str]:
         """
         Store code analysis results in Neo4j.
 
@@ -260,7 +283,10 @@ class AstNeo4jIntegration:
 
         # Generate a unique ID for the analysis
         file_name = os.path.basename(file_path)
-        analysis_id = hashlib.md5(f"{file_path}:{analysis_data['language']}:analysis".encode()).hexdigest()
+        analysis_id = hashlib.md5(
+            f"{file_path}:{analysis_data['language']}:analysis".encode(),
+            usedforsecurity=False,
+        ).hexdigest()
 
         with self.driver.session(database=self.db) as session:
             # Create file node if not exists
@@ -272,7 +298,7 @@ class AstNeo4jIntegration:
                 """,
                 path=file_path,
                 name=file_name,
-                language=analysis_data["language"]
+                language=analysis_data["language"],
             )
 
             # Create CodeAnalysis node
@@ -291,12 +317,15 @@ class AstNeo4jIntegration:
                 language=analysis_data["language"],
                 code_length=analysis_data["code_length"],
                 max_nesting=analysis_data["complexity_metrics"]["max_nesting_level"],
-                total_nodes=analysis_data["complexity_metrics"]["total_nodes"]
+                total_nodes=analysis_data["complexity_metrics"]["total_nodes"],
             )
 
             # Add functions
             for func in analysis_data["functions"]:
-                func_id = hashlib.md5(f"{analysis_id}:func:{func['name']}:{func['location']['start_line']}".encode()).hexdigest()
+                func_id = hashlib.md5(
+                    f"{analysis_id}:func:{func['name']}:{func['location']['start_line']}".encode(),
+                    usedforsecurity=False,
+                ).hexdigest()
                 session.run(
                     """
                     MATCH (a:CodeAnalysis {id: $analysis_id})
@@ -312,12 +341,15 @@ class AstNeo4jIntegration:
                     name=func["name"],
                     start_line=func["location"]["start_line"],
                     end_line=func["location"]["end_line"],
-                    parameters=func["parameters"]
+                    parameters=func["parameters"],
                 )
 
             # Add classes
             for cls in analysis_data["classes"]:
-                cls_id = hashlib.md5(f"{analysis_id}:class:{cls['name']}:{cls['location']['start_line']}".encode()).hexdigest()
+                cls_id = hashlib.md5(
+                    f"{analysis_id}:class:{cls['name']}:{cls['location']['start_line']}".encode(),
+                    usedforsecurity=False,
+                ).hexdigest()
                 session.run(
                     """
                     MATCH (a:CodeAnalysis {id: $analysis_id})
@@ -331,12 +363,15 @@ class AstNeo4jIntegration:
                     cls_id=cls_id,
                     name=cls["name"],
                     start_line=cls["location"]["start_line"],
-                    end_line=cls["location"]["end_line"]
+                    end_line=cls["location"]["end_line"],
                 )
 
             # Add imports
             for imp in analysis_data["imports"]:
-                imp_id = hashlib.md5(f"{analysis_id}:import:{imp['module']}:{imp['line']}".encode()).hexdigest()
+                imp_id = hashlib.md5(
+                    f"{analysis_id}:import:{imp['module']}:{imp['line']}".encode(),
+                    usedforsecurity=False,
+                ).hexdigest()
                 session.run(
                     """
                     MATCH (a:CodeAnalysis {id: $analysis_id})
@@ -348,13 +383,15 @@ class AstNeo4jIntegration:
                     analysis_id=analysis_id,
                     imp_id=imp_id,
                     module=imp["module"],
-                    line=imp["line"]
+                    line=imp["line"],
                 )
 
             print(f"✅ Stored code analysis in Neo4j with ID: {analysis_id}")
             return analysis_id
 
-    def find_complex_functions(self, nesting_threshold=3):
+    def find_complex_functions(
+        self, nesting_threshold: int = 3
+    ) -> List[Dict[str, Any]]:
         """Find functions with high nesting levels."""
         if not NEO4J_AVAILABLE or not self.driver:
             return []
@@ -369,11 +406,11 @@ class AstNeo4jIntegration:
                        a.max_nesting_level AS nesting_level
                 ORDER BY a.max_nesting_level DESC
                 """,
-                threshold=nesting_threshold
+                threshold=nesting_threshold,
             )
             return [dict(record) for record in result]
 
-    def find_function_calls(self):
+    def find_function_calls(self) -> List[Dict[str, Any]]:
         """Find function call relationships."""
         if not NEO4J_AVAILABLE or not self.driver:
             return []
@@ -389,13 +426,13 @@ class AstNeo4jIntegration:
             )
             return [dict(record) for record in result]
 
-    def close(self):
+    def close(self) -> None:
         """Close the Neo4j connection."""
         if self.driver:
             self.driver.close()
 
 
-def main():
+def main() -> None:
     """Main function to demonstrate Neo4j integration."""
     print("AST/ASG Neo4j Integration Example")
     print("-" * 50)
@@ -431,12 +468,12 @@ def fibonacci(n):
 result = factorial(5)
 print(f"Factorial of 5 is {result}")
 """
-        with open(example_file, 'w') as f:
+        with open(example_file, "w") as f:
             f.write(example_code)
         print(f"Created example code file: {example_file}")
 
     # Read example code
-    with open(example_file, 'r') as f:
+    with open(example_file, "r") as f:
         code = f.read()
 
     # Initialize Neo4j integration
@@ -470,7 +507,9 @@ print(f"Factorial of 5 is {result}")
     complex_functions = neo4j_integration.find_complex_functions(nesting_threshold=2)
     if complex_functions:
         for func in complex_functions:
-            print(f"  {func['function_name']} in {func['file_path']} (lines {func['start_line']}-{func['end_line']}), nesting: {func['nesting_level']}")
+            print(
+                f"  {func['function_name']} in {func['file_path']} (lines {func['start_line']}-{func['end_line']}), nesting: {func['nesting_level']}"
+            )
     else:
         print("  No complex functions found (or Neo4j integration not available)")
 
@@ -479,13 +518,16 @@ print(f"Factorial of 5 is {result}")
     function_calls = neo4j_integration.find_function_calls()
     if function_calls:
         for call in function_calls:
-            print(f"  {call['caller']} (line {call['caller_line']}) calls {call['callee']} (line {call['callee_line']}) in {call['file_path']}")
+            print(
+                f"  {call['caller']} (line {call['caller_line']}) calls {call['callee']} (line {call['callee_line']}) in {call['file_path']}"
+            )
     else:
         print("  No function calls found (or Neo4j integration not available)")
 
     # Example Cypher queries
     print("\nExample Cypher queries for advanced analysis:")
-    print("""
+    print(
+        """
     // Find recursive functions
     MATCH (f:SourceFile)-[:HAS_ASG]->(asg:ASG)-[:CONTAINS]->(func:ASGNode)
     MATCH p = (func)-[:EDGE*]->(func)
@@ -507,11 +549,13 @@ print(f"Factorial of 5 is {result}")
            SIZE((a)-[:HAS_FUNCTION]->()) AS function_count,
            SIZE((a)-[:HAS_CLASS]->()) AS class_count
     ORDER BY a.max_nesting_level DESC
-    """)
+    """
+    )
 
     # Close Neo4j connection
     neo4j_integration.close()
     print("\nDemo completed!")
+
 
 if __name__ == "__main__":
     main()

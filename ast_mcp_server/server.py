@@ -11,7 +11,7 @@ incremental parsing, and performance optimizations for large codebases.
 import json
 import os
 from collections import OrderedDict
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional, cast
 
 from mcp.server.fastmcp import FastMCP
 
@@ -26,31 +26,48 @@ from ast_mcp_server.resources import (
 from ast_mcp_server.tools import register_tools
 
 # Import our enhanced tools if they exist
+register_enhanced_tools: Optional[Callable[[Any], None]] = None
 try:
-    from ast_mcp_server.enhanced_tools import register_enhanced_tools
+    from ast_mcp_server.enhanced_tools import (
+        register_enhanced_tools as _register_enhanced_tools,
+    )
 
+    register_enhanced_tools = _register_enhanced_tools
     ENHANCED_TOOLS_AVAILABLE = True
 except ImportError:
-    register_enhanced_tools = None
     ENHANCED_TOOLS_AVAILABLE = False
 
 # Import our transformation tools
+register_transformation_tools: Optional[Callable[[Any], None]] = None
 try:
-    from ast_mcp_server.transformation_tools import register_transformation_tools
+    from ast_mcp_server.transformation_tools import (
+        register_transformation_tools as _register_transformation_tools,
+    )
 
+    register_transformation_tools = _register_transformation_tools
     TRANSFORMATION_TOOLS_AVAILABLE = True
 except ImportError:
-    register_transformation_tools = None
     TRANSFORMATION_TOOLS_AVAILABLE = False
 
 # Import USS (Universal Semantic Structure) tools
+register_uss_tools: Optional[Callable[[Any], None]] = None
 try:
-    from ast_mcp_server.uss_tools import register_uss_tools
+    from ast_mcp_server.uss_tools import register_uss_tools as _register_uss_tools
 
+    register_uss_tools = _register_uss_tools
     USS_TOOLS_AVAILABLE = True
 except ImportError:
-    register_uss_tools = None
     USS_TOOLS_AVAILABLE = False
+
+# Import Neo4j tools
+register_neo4j_tools: Optional[Callable[[Any], None]] = None
+try:
+    from ast_mcp_server.neo4j_tools import register_neo4j_tools as _register_neo4j_tools
+
+    register_neo4j_tools = _register_neo4j_tools
+    NEO4J_TOOLS_AVAILABLE = True
+except ImportError:
+    NEO4J_TOOLS_AVAILABLE = False
 
 # Initialize the MCP server
 mcp = FastMCP(
@@ -74,6 +91,10 @@ if TRANSFORMATION_TOOLS_AVAILABLE and register_transformation_tools is not None:
 if USS_TOOLS_AVAILABLE and register_uss_tools is not None:
     register_uss_tools(mcp)
 
+# Register Neo4j tools if available
+if NEO4J_TOOLS_AVAILABLE and register_neo4j_tools is not None:
+    register_neo4j_tools(mcp)
+
 # Register resources with the server
 register_resources(mcp)
 
@@ -81,14 +102,14 @@ register_resources(mcp)
 MAX_AST_CACHE_SIZE = int(os.environ.get("AST_CACHE_SIZE", "100"))
 
 
-class LRUCache(OrderedDict):
+class LRUCache(OrderedDict[str, Dict[str, Any]]):
     """LRU cache with maximum size limit to prevent memory leaks."""
 
     def __init__(self, max_size: int = 100):
         super().__init__()
         self.max_size = max_size
 
-    def __setitem__(self, key: str, value: Dict) -> None:
+    def __setitem__(self, key: str, value: Dict[str, Any]) -> None:
         if key in self:
             self.move_to_end(key)
         super().__setitem__(key, value)
@@ -96,7 +117,7 @@ class LRUCache(OrderedDict):
             oldest = next(iter(self))
             del self[oldest]
 
-    def get_with_touch(self, key: str) -> Optional[Dict]:
+    def get_with_touch(self, key: str) -> Optional[Dict[str, Any]]:
         """Get an item and move it to the end (most recently used)."""
         if key in self:
             self.move_to_end(key)
@@ -113,7 +134,7 @@ AST_CACHE: LRUCache = LRUCache(MAX_AST_CACHE_SIZE)
 @mcp.tool()
 def parse_and_cache(
     code: str, language: Optional[str] = None, filename: Optional[str] = None
-) -> Dict:
+) -> Dict[str, Any]:
     """
     Parse code into an AST and cache it for resource access.
 
@@ -150,7 +171,7 @@ def parse_and_cache(
 @mcp.tool()
 def generate_and_cache_asg(
     code: str, language: Optional[str] = None, filename: Optional[str] = None
-) -> Dict:
+) -> Dict[str, Any]:
     """
     Generate an ASG from code and cache it for resource access.
 
@@ -191,7 +212,7 @@ def generate_and_cache_asg(
 @mcp.tool()
 def analyze_and_cache(
     code: str, language: Optional[str] = None, filename: Optional[str] = None
-) -> Dict:
+) -> Dict[str, Any]:
     """
     Analyze code structure and cache the results for resource access.
 
@@ -232,7 +253,7 @@ def analyze_project(
     language: Optional[str] = None,
     filename: Optional[str] = None,
     include_summary: bool = True,
-) -> Dict:
+) -> Dict[str, Any]:
     """
     Analyze code and save results to analyzed_projects folder.
 
@@ -325,7 +346,7 @@ Provide a concise summary of what this code does."""
             ai_summary = f"(Summary unavailable: {e})"
 
     # Return paths, not the vast data
-    response: Dict = {
+    response: Dict[str, Any] = {
         "status": "success",
         "project_name": project_name,
         "language": ast_data.get("language", "unknown"),
@@ -357,7 +378,7 @@ if ENHANCED_TOOLS_AVAILABLE:
         code_id: Optional[
             str
         ] = None,  # Optional identifier for the code (e.g. file path)
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """
         Parse code into an AST incrementally and cache it for resource access.
 
@@ -413,7 +434,7 @@ if ENHANCED_TOOLS_AVAILABLE:
     @mcp.tool()
     def generate_and_cache_enhanced_asg(
         code: str, language: Optional[str] = None, filename: Optional[str] = None
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """
         Generate an enhanced ASG from code and cache it for resource access.
 
@@ -456,7 +477,7 @@ if ENHANCED_TOOLS_AVAILABLE:
         new_code: str,
         language: Optional[str] = None,
         filename: Optional[str] = None,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """
         Generate an AST diff between old and new code versions and cache it.
 
@@ -509,7 +530,7 @@ if ENHANCED_TOOLS_AVAILABLE:
 
     # Register enhanced resources
     @mcp.resource("diff://{diff_hash}")
-    def diff_resource(diff_hash: str) -> Dict:
+    def diff_resource(diff_hash: str) -> Dict[str, Any]:
         """
         Resource that provides an AST diff between two code versions.
 
@@ -526,14 +547,14 @@ if ENHANCED_TOOLS_AVAILABLE:
         if os.path.exists(cache_path):
             try:
                 with open(cache_path, "r") as f:
-                    return json.load(f)
+                    return cast(Dict[str, Any], json.load(f))
             except Exception as e:
                 return {"error": f"Error reading cached diff: {e}"}
 
         return {"error": "Diff not found. Please use ast_diff_and_cache tool first."}
 
     @mcp.resource("enhanced_asg://{code_hash}")
-    def enhanced_asg_resource(code_hash: str) -> Dict:
+    def enhanced_asg_resource(code_hash: str) -> Dict[str, Any]:
         """
         Resource that provides the enhanced Abstract Semantic Graph for a piece of code.
 
@@ -552,7 +573,7 @@ if ENHANCED_TOOLS_AVAILABLE:
         if os.path.exists(cache_path):
             try:
                 with open(cache_path, "r") as f:
-                    return json.load(f)
+                    return cast(Dict[str, Any], json.load(f))
             except Exception as e:
                 return {"error": f"Error reading cached enhanced ASG: {e}"}
 
@@ -561,7 +582,7 @@ if ENHANCED_TOOLS_AVAILABLE:
         }
 
 
-def main():
+def main() -> None:
     """Main entry point for the AST MCP Server."""
     print("Starting server initialization...")
 
@@ -599,6 +620,14 @@ def main():
         print("  - Set OPENROUTER_API_KEY for embeddings and server LLM")
     else:
         print("USS tools not available.")
+
+    # Report on Neo4j tools availability
+    if NEO4J_TOOLS_AVAILABLE:
+        print("Neo4j integration tools are available.")
+        print("  - Sync code analysis to Graph DB")
+        print("  - Cypher query execution")
+    else:
+        print("Neo4j tools not available. Install neo4j package.")
 
     # Start the MCP server
     print("Starting AST/ASG Code Analysis MCP Server v0.3.0...")

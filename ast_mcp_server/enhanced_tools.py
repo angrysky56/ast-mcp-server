@@ -7,7 +7,7 @@ optimizations for handling large codebases.
 """
 
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 from tree_sitter import Parser, Tree
 
@@ -36,17 +36,31 @@ PYTHON_SCOPE_NODES = {
 }
 
 
+class AstNode(TypedDict):
+    id: str
+    type: str
+    text: str
+    start_byte: int
+    end_byte: int
+    start_line: int
+    start_col: int
+    end_line: int
+    end_col: int
+
+
 class ScopeManager:
     """Manages scope hierarchy for semantic analysis."""
 
-    def __init__(self):
-        self.scopes = {}  # Maps scope_id to parent_scope_id
-        self.variables = defaultdict(dict)  # Maps scope_id -> {var_name: var_id}
-        self.functions = {}  # Maps func_name to func_id
-        self.classes = {}  # Maps class_name to class_id
-        self.imports = {}  # Maps import_name to import_id
+    def __init__(self) -> None:
+        self.scopes: dict[str, str] = {}  # Maps scope_id to parent_scope_id
+        self.variables: defaultdict[str, dict[str, str]] = defaultdict(
+            dict
+        )  # Maps scope_id -> {var_name: var_id}
+        self.functions: dict[str, str] = {}  # Maps func_name to func_id
+        self.classes: dict[str, str] = {}  # Maps class_name to class_id
+        self.imports: dict[str, str] = {}  # Maps import_name to import_id
         self.global_scope = "global"
-        self.control_flow = []  # Stack of control flow nodes
+        self.control_flow: list[str] = []  # Stack of control flow nodes
 
     def enter_scope(self, scope_id: str, parent_scope_id: Optional[str] = None) -> str:
         """
@@ -97,7 +111,8 @@ class ScopeManager:
         Returns:
             The variable ID if found, None otherwise
         """
-        current_scope = scope_id
+        # Use an optional type for current_scope to handle possible None returns
+        current_scope: Optional[str] = scope_id
 
         while current_scope is not None:
             if var_name in self.variables[current_scope]:
@@ -144,7 +159,7 @@ def parse_code_to_ast_incremental(
     previous_tree: Optional[Tree] = None,
     old_code: Optional[str] = None,
     include_children: bool = True,
-) -> Dict:
+) -> Dict[str, Any]:
     """
     Parse code into an AST incrementally using Tree-sitter.
 
@@ -252,16 +267,16 @@ def create_enhanced_asg_from_ast(ast_data: Dict) -> Dict:
     language = ast_data["language"]
 
     # Extract nodes and edges from the AST
-    nodes = []
+    nodes: List[AstNode] = []
     edges = []
     node_ids = {}  # Map of {node_id: node_index} for quick lookups
 
-    def extract_nodes(node, parent_id=None):
+    def extract_nodes(node: Dict[str, Any], parent_id: Optional[str] = None) -> str:
         node_id = f"{node['type']}_{node['start_byte']}_{node['end_byte']}"
 
         # Create a node object with metadata
         node_index = len(nodes)
-        node_obj = {
+        node_obj: AstNode = {
             "id": node_id,
             "type": node["type"],
             "text": node["text"],
@@ -305,7 +320,7 @@ def create_enhanced_asg_from_ast(ast_data: Dict) -> Dict:
     }
 
 
-def add_enhanced_python_semantic_edges(ast: Dict, edges: List[Dict]):
+def add_enhanced_python_semantic_edges(ast: Dict, edges: List[Dict]) -> None:
     """
     Add enhanced Python-specific semantic edges to the ASG.
 
@@ -322,7 +337,9 @@ def add_enhanced_python_semantic_edges(ast: Dict, edges: List[Dict]):
     current_scope = scope_manager.global_scope
 
     # First pass: find all definitions (functions, classes, variables)
-    def find_enhanced_definitions(node, scope=None):
+    def find_enhanced_definitions(
+        node: Dict[str, Any], scope: Optional[str] = None
+    ) -> None:
         nonlocal current_scope
         old_scope = current_scope
         node_id = f"{node['type']}_{node['start_byte']}_{node['end_byte']}"
@@ -441,7 +458,9 @@ def add_enhanced_python_semantic_edges(ast: Dict, edges: List[Dict]):
             current_scope = old_scope
 
     # Second pass: find all references and connect the edges
-    def find_enhanced_references(node, scope=None):
+    def find_enhanced_references(
+        node: Dict[str, Any], scope: Optional[str] = None
+    ) -> None:
         nonlocal current_scope
         old_scope = current_scope
         node_id = f"{node['type']}_{node['start_byte']}_{node['end_byte']}"
@@ -516,7 +535,7 @@ def add_enhanced_python_semantic_edges(ast: Dict, edges: List[Dict]):
     find_enhanced_references(ast)
 
 
-def add_enhanced_js_ts_semantic_edges(ast: Dict, edges: List[Dict]):
+def add_enhanced_js_ts_semantic_edges(ast: Dict, edges: List[Dict]) -> None:
     """
     Add enhanced JavaScript/TypeScript-specific semantic edges to the ASG.
 
@@ -579,7 +598,7 @@ def generate_ast_diff(
     # Find nodes in the new AST that are in the changed ranges
     changed_nodes = []
 
-    def find_nodes_in_range(node, ranges):
+    def find_nodes_in_range(node: Dict[str, Any], ranges: List[Dict[str, Any]]) -> bool:
         # Check if this node is in any of the changed ranges
         node_start = node["start_byte"]
         node_end = node["end_byte"]
@@ -625,7 +644,7 @@ def get_node_by_position(ast: Dict, line: int, column: int) -> Optional[Dict]:
         The node at the given position, or None if not found
     """
 
-    def find_node(node):
+    def find_node(node: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         # Check if the position is within this node's range
         if node["start_point"]["row"] <= line <= node["end_point"]["row"]:
             # If on start or end line, check column as well
@@ -656,7 +675,7 @@ def get_node_by_position(ast: Dict, line: int, column: int) -> Optional[Dict]:
     return find_node(ast["ast"])
 
 
-def register_enhanced_tools(mcp_server):
+def register_enhanced_tools(mcp_server: Any) -> None:
     """Register all enhanced tools with the MCP server."""
 
     @mcp_server.tool(name="parse_to_ast_incremental")
@@ -665,7 +684,7 @@ def register_enhanced_tools(mcp_server):
         old_code: Optional[str] = None,
         language: Optional[str] = None,
         filename: Optional[str] = None,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """
         Parse code into an AST with incremental parsing support.
 
@@ -701,7 +720,7 @@ def register_enhanced_tools(mcp_server):
     @mcp_server.tool()
     def generate_enhanced_asg(
         code: str, language: Optional[str] = None, filename: Optional[str] = None
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """
         Generate an enhanced Abstract Semantic Graph (ASG) from code.
 
@@ -717,7 +736,7 @@ def register_enhanced_tools(mcp_server):
         Returns:
             A dictionary containing the enhanced ASG with nodes, edges, and metadata
         """
-        ast_data = parse_to_ast_incremental(
+        ast_data = parse_code_to_ast_incremental(
             code, old_code=None, language=language, filename=filename
         )
         return create_enhanced_asg_from_ast(ast_data)
@@ -728,7 +747,7 @@ def register_enhanced_tools(mcp_server):
         new_code: str,
         language: Optional[str] = None,
         filename: Optional[str] = None,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """
         Compare two versions of code and return only the changed AST nodes.
 
@@ -744,10 +763,10 @@ def register_enhanced_tools(mcp_server):
         Returns:
             A dictionary with the changed nodes and metadata
         """
-        ast_old = parse_to_ast_incremental(
+        ast_old = parse_code_to_ast_incremental(
             old_code, language=language, filename=filename
         )
-        ast_new = parse_to_ast_incremental(
+        ast_new = parse_code_to_ast_incremental(
             new_code, language=language, filename=filename
         )
 
@@ -765,7 +784,7 @@ def register_enhanced_tools(mcp_server):
         column: int,
         language: Optional[str] = None,
         filename: Optional[str] = None,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """
         Find the AST node at a specific position in the code.
 
@@ -782,7 +801,9 @@ def register_enhanced_tools(mcp_server):
             Returns:
                 The node at the given position, or an error if not found
         """
-        ast_data = parse_to_ast_incremental(code, language=language, filename=filename)
+        ast_data = parse_code_to_ast_incremental(
+            code, language=language, filename=filename
+        )
 
         if "error" in ast_data:
             return ast_data
