@@ -46,6 +46,8 @@ dependencies = [
   "ast-grep-py>=0.40.1",
   "typer>=0.20.0",
   "rich>=14.2.0",
+  "chromadb>=0.4.0",
+  "httpx>=0.25.0",
 ]
 
 [project.optional-dependencies]

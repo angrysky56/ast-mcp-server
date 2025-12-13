@@ -43,11 +43,20 @@ except ImportError:
     register_transformation_tools = None
     TRANSFORMATION_TOOLS_AVAILABLE = False
 
+# Import USS (Universal Semantic Structure) tools
+try:
+    from ast_mcp_server.uss_tools import register_uss_tools
+
+    USS_TOOLS_AVAILABLE = True
+except ImportError:
+    register_uss_tools = None
+    USS_TOOLS_AVAILABLE = False
+
 # Initialize the MCP server
 mcp = FastMCP(
     "AstAnalyzer",
-    version="0.2.0",
-    description="Code structure and semantic analysis using AST/ASG with enhanced features",
+    version="0.3.0",
+    description="Code structure and semantic analysis using AST/ASG with USS (Universal Semantic Structure)",
 )
 
 # Register tools with the server
@@ -60,6 +69,10 @@ if ENHANCED_TOOLS_AVAILABLE and register_enhanced_tools is not None:
 # Register transformation tools if available
 if TRANSFORMATION_TOOLS_AVAILABLE and register_transformation_tools is not None:
     register_transformation_tools(mcp)
+
+# Register USS tools if available
+if USS_TOOLS_AVAILABLE and register_uss_tools is not None:
+    register_uss_tools(mcp)
 
 # Register resources with the server
 register_resources(mcp)
@@ -526,8 +539,17 @@ def main():
             "Transformation tools not available. Install ast-grep-cli for code transformation features."
         )
 
+    # Report on USS (Universal Semantic Structure) tools availability
+    if USS_TOOLS_AVAILABLE:
+        print("USS (Universal Semantic Structure) tools are available.")
+        print("  - Semantic search via ChromaDB")
+        print("  - Graph traversal and queries")
+        print("  - Set OPENROUTER_API_KEY for embeddings and server LLM")
+    else:
+        print("USS tools not available.")
+
     # Start the MCP server
-    print("Starting AST/ASG Code Analysis MCP Server...")
+    print("Starting AST/ASG Code Analysis MCP Server v0.3.0...")
     print("Running MCP server...")
     mcp.run()
     print("MCP server exited.")  # This will only print if mcp.run() returns
