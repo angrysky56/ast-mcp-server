@@ -395,22 +395,7 @@ def register_transformation_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Search for structural patterns in code using ast-grep.
-
-        This tool performs structural search based on the Abstract Syntax Tree,
-        allowing you to find code patterns that match the semantic structure
-        rather than just text patterns.
-
-        Args:
-            code: Source code to search in
-            pattern: ast-grep pattern (e.g., '$PROP && $PROP()' for property checks)
-            language: Programming language (auto-detected if not provided)
-            filename: Optional filename for language detection
-
-        Returns:
-            Dictionary containing search results with match locations and details
-        """
+        """Search for structural patterns in code using ast-grep. Returns {matches, count}."""
         try:
             matches = transformer.search_pattern(code, pattern, language, filename)
 
@@ -434,23 +419,7 @@ def register_transformation_tools(mcp_server: Any) -> None:
         filename: Optional[str] = None,
         preview_only: bool = False,
     ) -> Dict[str, Any]:
-        """
-        Transform code by replacing structural patterns using ast-grep.
-
-        This tool performs structural find-and-replace operations based on
-        the Abstract Syntax Tree, enabling safe code refactoring and modernization.
-
-        Args:
-            code: Source code to transform
-            pattern: ast-grep pattern to match (e.g., '$PROP && $PROP()')
-            replacement: Replacement pattern (e.g., '$PROP?.()')
-            language: Programming language (auto-detected if not provided)
-            filename: Optional filename for language detection
-            preview_only: If True, only show what would be changed without applying
-
-        Returns:
-            Dictionary containing transformation results and statistics
-        """
+        """Replace structural patterns in code using ast-grep. Returns {transformed_code, changes_applied}."""
         try:
             if preview_only:
                 # Just search to show what would be transformed
@@ -494,19 +463,7 @@ def register_transformation_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def validate_ast_pattern(pattern: str, language: str) -> Dict[str, Any]:
-        """
-        Validate an ast-grep pattern for syntax correctness.
-
-        This tool checks if a pattern is valid for the specified language
-        before using it in search or transformation operations.
-
-        Args:
-            pattern: ast-grep pattern to validate
-            language: Target programming language
-
-        Returns:
-            Dictionary with validation results and any error messages
-        """
+        """Check if ast-grep pattern syntax is valid for the specified language."""
         try:
             result = transformer.validate_pattern(pattern, language)
             return result
@@ -521,15 +478,7 @@ def register_transformation_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def list_transformation_examples() -> Dict[str, Any]:
-        """
-        Get common ast-grep pattern examples for different languages.
-
-        This tool provides a curated list of useful transformation patterns
-        for code modernization, refactoring, and maintenance tasks.
-
-        Returns:
-            Dictionary containing example patterns organized by language and use case
-        """
+        """Get common ast-grep pattern examples for code modernization and refactoring."""
         examples = {
             "javascript": {
                 "modernization": [

@@ -32,11 +32,7 @@ except (ImportError, ValueError):
 
 
 def register_uss_tools(mcp_server: Any) -> None:
-    """Register USS tools with the MCP server.
-
-    Args:
-        mcp_server: The FastMCP server instance
-    """
+    """Register USS tools with the MCP server."""
 
     @mcp_server.tool()
     def uss_status() -> Dict[str, Any]:
@@ -62,19 +58,7 @@ def register_uss_tools(mcp_server: Any) -> None:
         project: Optional[str] = None,
         limit: int = 10,
     ) -> Dict[str, Any]:
-        """Search indexed content semantically.
-
-        Uses vector similarity to find relevant code, text, or other content.
-
-        Args:
-            query: Natural language search query
-            node_type: Optional filter by node type (function, class, etc.)
-            project: Optional filter by project name
-            limit: Maximum results to return
-
-        Returns:
-            Matching nodes with relevance scores
-        """
+        """Search indexed content semantically. Returns matching nodes with relevance scores."""
         if not CHROMADB_AVAILABLE:
             return {
                 "error": "ChromaDB not available. Install with: pip install chromadb"
@@ -104,16 +88,7 @@ def register_uss_tools(mcp_server: Any) -> None:
         include_edges: bool = True,
         graph_path: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Get full details for a specific node from a saved graph.
-
-        Args:
-            node_id: ID of the node to retrieve
-            include_edges: Whether to include connected edges
-            graph_path: Path to saved graph JSON file
-
-        Returns:
-            Full node data with optional edges
-        """
+        """Get full node details from a saved graph. Optionally include edges."""
         if not graph_path:
             return {"error": "graph_path is required"}
 
@@ -140,19 +115,7 @@ def register_uss_tools(mcp_server: Any) -> None:
         depth: int = 3,
         graph_path: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Traverse relationships from a starting node.
-
-        Follows edges of specified types to discover connected nodes.
-
-        Args:
-            start_id: Starting node ID
-            edge_types: Edge types to follow (calls, contains, similar_to, etc.)
-            depth: Maximum traversal depth
-            graph_path: Path to saved graph JSON file
-
-        Returns:
-            Paths through the graph
-        """
+        """Traverse graph from start node following specified edge types."""
         if not graph_path:
             return {"error": "graph_path is required"}
 
@@ -180,16 +143,7 @@ def register_uss_tools(mcp_server: Any) -> None:
         edge_type: Optional[str] = None,
         graph_path: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Query nodes from a saved graph by type and relationships.
-
-        Args:
-            node_type: Filter to specific node types
-            edge_type: Filter to nodes with specific edge types
-            graph_path: Path to saved graph JSON file
-
-        Returns:
-            Matching nodes
-        """
+        """Query nodes from saved graph by type/relationships. Returns matching nodes."""
         if not graph_path:
             return {"error": "graph_path is required"}
 
@@ -212,14 +166,7 @@ def register_uss_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def graph_summary(graph_path: Optional[str] = None) -> Dict[str, Any]:
-        """Get a lightweight summary of a saved graph.
-
-        Args:
-            graph_path: Path to saved graph JSON file
-
-        Returns:
-            Summary with node/edge counts and type distributions
-        """
+        """Get node/edge counts and type distributions from saved graph."""
         if not graph_path:
             return {"error": "graph_path is required"}
 

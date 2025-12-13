@@ -18,17 +18,7 @@ from ast_mcp_server.tools import (
 def sync_file_to_graph(
     code: str, file_path: str, language: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
-    Sync file analysis (AST, ASG, Metrics) to Neo4j graph.
-
-    Args:
-        code: Source code content
-        file_path: Path to the file (used as ID/label)
-        language: Programming language identifier
-
-    Returns:
-        Dictionary with IDs of stored artifacts or error message
-    """
+    """Parse code → store AST+ASG+metrics in Neo4j. Returns {stored: {ast_id, asg_id, analysis_id}}."""
     neo4j_client = get_neo4j_client()
 
     # Ensure connected
@@ -76,16 +66,7 @@ def sync_file_to_graph(
 def query_neo4j_graph(
     query: str, parameters: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
-    """
-    Execute a Cypher query against the code graph.
-
-    Args:
-        query: Cypher query string
-        parameters: Optional dictionary of query parameters
-
-    Returns:
-        List of records or error message
-    """
+    """Execute Cypher query on code graph. Returns {records, count}."""
     neo4j_client = get_neo4j_client()
 
     if not neo4j_client.is_connected() or not neo4j_client.driver:

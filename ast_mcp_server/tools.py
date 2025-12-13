@@ -597,54 +597,20 @@ def analyze_go_structure(ast: Dict[str, Any], structure: Dict[str, Any]) -> None
 
 
 def register_tools(mcp_server: Any) -> None:
-    """Register all tools with the MCP server.
-
-    Args:
-        mcp_server: The FastMCP server instance to register tools with
-    """
+    """Register all tools with the MCP server."""
 
     @mcp_server.tool()
     def parse_to_ast(
         code: str, language: Optional[str] = None, filename: Optional[str] = None
     ) -> Dict:
-        """
-        Parse code into an Abstract Syntax Tree (AST).
-
-        This tool takes source code and returns its syntax tree representation.
-        The AST provides structural information about the code, showing how
-        different parts of the code relate to each other syntactically.
-
-        Args:
-            code: The source code to parse
-            language: The programming language (e.g., 'python', 'javascript')
-                     If not provided, the tool will attempt to detect it
-            filename: Optional filename to help with language detection
-
-        Returns:
-            A dictionary containing the AST and language information
-        """
+        """Parse code → AST (syntax tree). Auto-detects language."""
         return parse_code_to_ast(code, language, filename)
 
     @mcp_server.tool()
     def generate_asg(
         code: str, language: Optional[str] = None, filename: Optional[str] = None
     ) -> Dict:
-        """
-        Generate an Abstract Semantic Graph (ASG) from code.
-
-        This tool analyzes code and creates a semantic graph that captures not just
-        syntax but also semantic relationships like variable references, function calls,
-        type information, and data flow where possible.
-
-        Args:
-            code: The source code to analyze
-            language: The programming language (e.g., 'python', 'javascript')
-                     If not provided, the tool will attempt to detect it
-            filename: Optional filename to help with language detection
-
-        Returns:
-            A dictionary containing the ASG nodes, edges, and metadata
-        """
+        """Parse code → AST → ASG (nodes + edges with semantic relationships)."""
         ast_data = parse_code_to_ast(code, language, filename)
         return create_asg_from_ast(ast_data)
 
@@ -652,33 +618,12 @@ def register_tools(mcp_server: Any) -> None:
     def analyze_code(
         code: str, language: Optional[str] = None, filename: Optional[str] = None
     ) -> Dict:
-        """
-        Analyze code structure and provide insights.
-
-        This tool examines code and extracts structural information like functions,
-        classes, complexity metrics, and other language-specific details.
-
-        Args:
-            code: The source code to analyze
-            language: The programming language (e.g., 'python', 'javascript')
-                     If not provided, the tool will attempt to detect it
-            filename: Optional filename to help with language detection
-
-        Returns:
-            A dictionary with analysis results including structure and metrics
-        """
+        """Extract functions, classes, imports, complexity metrics from code."""
         return analyze_code_structure(code, language, filename)
 
     @mcp_server.tool()
     def supported_languages() -> List[str]:
-        """
-        Get the list of supported programming languages.
-
-        Returns:
-            A list of programming language identifiers that can be parsed
-        """
-        # Initialize parsers if not done already
+        """List available language parsers (e.g., python, javascript)."""
         if not languages and not init_parsers():
             return []
-
         return list(languages.keys())

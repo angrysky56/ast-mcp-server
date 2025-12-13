@@ -9,18 +9,7 @@ from typing import Any, Dict
 
 
 def ask_uss_agent(query: str) -> Dict[str, Any]:
-    """
-    Ask the USS Agent a question about the codebase.
-
-    The agent has access to both ChromaDB (semantic search) and Neo4j (graph DB),
-    and can intelligently determine how to answer your question using the USS framework.
-
-    Args:
-        query: Natural language question or command
-
-    Returns:
-        Structured response with decision, results, and summary
-    """
+    """Natural language query to USS. Agent picks Neo4j/ChromaDB, runs query, returns {decision, results, summary}."""
     from ast_mcp_server.uss_agent import get_uss_agent
 
     try:
@@ -31,12 +20,7 @@ def ask_uss_agent(query: str) -> Dict[str, Any]:
 
 
 def uss_agent_status() -> Dict[str, Any]:
-    """
-    Get the status of the USS Agent and its database connections.
-
-    Returns:
-        Status of Neo4j, ChromaDB, and the configured LLM model
-    """
+    """Check USS Agent status: Neo4j connected?, ChromaDB available?, LLM model."""
     from ast_mcp_server.uss_agent import get_uss_agent
 
     try:

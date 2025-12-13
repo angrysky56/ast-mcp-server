@@ -149,21 +149,7 @@ AST_CACHE: LRUCache = LRUCache(MAX_AST_CACHE_SIZE)
 def parse_and_cache(
     code: str, language: Optional[str] = None, filename: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
-    Parse code into an AST and cache it for resource access.
-
-    This tool parses source code into an Abstract Syntax Tree and stores it
-    for later retrieval as a resource. It returns both the AST data and
-    a resource URI that can be used to access the data.
-
-    Args:
-        code: Source code to parse
-        language: Programming language (optional, will be auto-detected if not provided)
-        filename: Source filename (optional, helps with language detection)
-
-    Returns:
-        Dictionary with AST data and resource URI
-    """
+    """Parse code → AST. Returns {ast, resource_uri}. Auto-detects language."""
     from ast_mcp_server.tools import parse_code_to_ast
 
     # Generate a hash for the code
@@ -186,21 +172,7 @@ def parse_and_cache(
 def generate_and_cache_asg(
     code: str, language: Optional[str] = None, filename: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
-    Generate an ASG from code and cache it for resource access.
-
-    This tool analyzes source code to create an Abstract Semantic Graph and
-    stores it for later retrieval as a resource. It returns both the ASG data
-    and a resource URI that can be used to access the data.
-
-    Args:
-        code: Source code to analyze
-        language: Programming language (optional, will be auto-detected if not provided)
-        filename: Source filename (optional, helps with language detection)
-
-    Returns:
-        Dictionary with ASG data and resource URI
-    """
+    """Parse code → AST → ASG (semantic graph with edges). Returns {asg, resource_uri}."""
     from ast_mcp_server.tools import create_asg_from_ast, parse_code_to_ast
 
     # Generate a hash for the code
@@ -227,21 +199,7 @@ def generate_and_cache_asg(
 def analyze_and_cache(
     code: str, language: Optional[str] = None, filename: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
-    Analyze code structure and cache the results for resource access.
-
-    This tool analyzes source code structure and stores the results
-    for later retrieval as a resource. It returns both the analysis data
-    and a resource URI that can be used to access the data.
-
-    Args:
-        code: Source code to analyze
-        language: Programming language (optional, will be auto-detected if not provided)
-        filename: Source filename (optional, helps with language detection)
-
-    Returns:
-        Dictionary with analysis data and resource URI
-    """
+    """Extract functions, classes, imports, complexity metrics. Returns {analysis, resource_uri}."""
     from ast_mcp_server.tools import analyze_code_structure
 
     # Generate a hash for the code
@@ -268,28 +226,7 @@ def analyze_project(
     filename: Optional[str] = None,
     include_summary: bool = True,
 ) -> Dict[str, Any]:
-    """
-    Analyze code and save results to analyzed_projects folder.
-
-    Instead of returning vast AST data, this tool saves analysis to
-    organized files and returns file paths. The output is structured
-    into logical sections:
-    - functions.json - All function definitions
-    - classes.json - All class definitions
-    - imports.json - All imports/dependencies
-    - structure.json - Code metrics and overview
-    - summary.txt - AI-generated summary (if include_summary=True and LLM configured)
-
-    Args:
-        code: Source code to analyze
-        project_name: Name for the project (used in output folder name)
-        language: Programming language (optional, auto-detected)
-        filename: Source filename (optional)
-        include_summary: Generate AI summary using server LLM (default True)
-
-    Returns:
-        Dictionary with file paths to saved analysis, NOT the full AST
-    """
+    """Save full analysis to files (functions.json, classes.json, etc). Returns file paths, not data. Optionally generates AI summary."""
     from ast_mcp_server.output_manager import get_output_manager
     from ast_mcp_server.tools import (
         analyze_code_structure,
@@ -389,26 +326,9 @@ if ENHANCED_TOOLS_AVAILABLE:
         code: str,
         language: Optional[str] = None,
         filename: Optional[str] = None,
-        code_id: Optional[
-            str
-        ] = None,  # Optional identifier for the code (e.g. file path)
+        code_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Parse code into an AST incrementally and cache it for resource access.
-
-        This tool uses incremental parsing when possible, which is much faster
-        for large files with small changes. It also caches the results for
-        future access.
-
-        Args:
-            code: Source code to parse
-            language: Programming language (optional, will be auto-detected if not provided)
-            filename: Source filename (optional, helps with language detection)
-            code_id: Optional identifier for the code (e.g. file path)
-
-        Returns:
-            Dictionary with AST data and resource URI
-        """
+        """Parse code → AST with incremental support. Caches for faster subsequent parses."""
         # from ast_mcp_server.enhanced_tools import parse_code_to_ast_incremental # Moved to top of block
 
         # Generate a hash for the code
@@ -449,21 +369,7 @@ if ENHANCED_TOOLS_AVAILABLE:
     def generate_and_cache_enhanced_asg(
         code: str, language: Optional[str] = None, filename: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Generate an enhanced ASG from code and cache it for resource access.
-
-        This tool creates a more complete semantic graph with better
-        scope handling, control flow edges, and data flow edges. It stores
-        the results for later retrieval.
-
-        Args:
-            code: Source code to analyze
-            language: Programming language (optional, will be auto-detected if not provided)
-            filename: Source filename (optional, helps with language detection)
-
-        Returns:
-            Dictionary with enhanced ASG data and resource URI
-        """
+        """Parse code → enhanced ASG with scope/control flow. Caches result."""
         # from ast_mcp_server.enhanced_tools import parse_code_to_ast_incremental, create_enhanced_asg_from_ast # Moved to top of block
 
         # Generate a hash for the code
@@ -492,21 +398,7 @@ if ENHANCED_TOOLS_AVAILABLE:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Generate an AST diff between old and new code versions and cache it.
-
-        This tool compares two versions of code and returns only the changed AST nodes,
-        which is much more efficient for large files with small changes.
-
-        Args:
-            old_code: Previous version of the code
-            new_code: New version of the code
-            language: Programming language (optional, will be auto-detected if not provided)
-            filename: Source filename (optional, helps with language detection)
-
-        Returns:
-            Dictionary with diff data and resource URIs
-        """
+        """Compare old/new code. Returns changed AST nodes. Caches result."""
         # Parse old and new code to ASTs
         ast_old = parse_code_to_ast_incremental(
             old_code, language=language, filename=filename

@@ -685,34 +685,14 @@ def register_enhanced_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Parse code into an AST with incremental parsing support.
-
-        This tool can use the previous version of the code to only parse
-        the parts that changed, which is much faster for large files.
-
-        Args:
-            code: New source code to parse
-            old_code: Previous version of the code (optional)
-            language: Programming language (e.g., 'python', 'javascript')
-                     If not provided, the tool will attempt to detect it
-            filename: Optional filename to help with language detection
-
-        Returns:
-            A dictionary containing the AST and language information,
-            along with diff information if old_code was provided
-        """
-        # If old_code is provided, try to use it for incremental parsing
+        """Parse code → AST with incremental support. Faster for small changes to large files."""
         previous_tree = None
         if old_code:
-            # First parse the old code to get a tree
             old_result = parse_code_to_ast_incremental(
                 old_code, language=language, filename=filename
             )
             if "error" not in old_result and "tree_object" in old_result:
                 previous_tree = old_result["tree_object"]
-
-        # Parse the new code, potentially using the previous tree
         return parse_code_to_ast_incremental(
             code, language, filename, previous_tree, old_code
         )
@@ -721,21 +701,7 @@ def register_enhanced_tools(mcp_server: Any) -> None:
     def generate_enhanced_asg(
         code: str, language: Optional[str] = None, filename: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Generate an enhanced Abstract Semantic Graph (ASG) from code.
-
-        This tool creates a more complete semantic graph with better
-        scope handling, control flow edges, and data flow edges.
-
-        Args:
-            code: The source code to analyze
-            language: The programming language (e.g., 'python', 'javascript')
-                     If not provided, the tool will attempt to detect it
-            filename: Optional filename to help with language detection
-
-        Returns:
-            A dictionary containing the enhanced ASG with nodes, edges, and metadata
-        """
+        """Parse code → enhanced ASG with scope, control flow, and data flow edges."""
         ast_data = parse_code_to_ast_incremental(
             code, old_code=None, language=language, filename=filename
         )
@@ -748,33 +714,17 @@ def register_enhanced_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Compare two versions of code and return only the changed AST nodes.
-
-        This is useful for incremental updates, where only the changed parts
-        need to be analyzed, saving time and memory for large files.
-
-        Args:
-            old_code: Previous version of the code
-            new_code: New version of the code
-            language: Programming language (e.g., 'python', 'javascript')
-            filename: Optional filename to help with language detection
-
-        Returns:
-            A dictionary with the changed nodes and metadata
-        """
+        """Compare old/new code versions. Returns only changed AST nodes."""
         ast_old = parse_code_to_ast_incremental(
             old_code, language=language, filename=filename
         )
         ast_new = parse_code_to_ast_incremental(
             new_code, language=language, filename=filename
         )
-
         if "error" in ast_old:
             return ast_old
         if "error" in ast_new:
             return ast_new
-
         return generate_ast_diff(ast_old, ast_new, old_code, new_code)
 
     @mcp_server.tool()
@@ -785,31 +735,13 @@ def register_enhanced_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Find the AST node at a specific position in the code.
-
-        This is useful for pinpointing a specific location in the code,
-        for example to find what function or variable is at the cursor position.
-
-        Args:
-            code: The source code
-            line: Line number (0-based)
-            column: Column number (0-based)
-            language: Programming language (e.g., 'python', 'javascript')
-            filename: Optional filename to help with language detection
-
-            Returns:
-                The node at the given position, or an error if not found
-        """
+        """Find AST node at cursor position (0-based line/column)."""
         ast_data = parse_code_to_ast_incremental(
             code, language=language, filename=filename
         )
-
         if "error" in ast_data:
             return ast_data
-
         node = get_node_by_position(ast_data, line, column)
-
         if node:
             return {"node": node, "language": ast_data["language"]}
         else:
