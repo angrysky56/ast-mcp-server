@@ -70,11 +70,9 @@ except ImportError:
     NEO4J_TOOLS_AVAILABLE = False
 
 # Initialize the MCP server
-mcp = FastMCP(
-    "AstAnalyzer",
-    version="0.3.0",
-    description="Code structure and semantic analysis using AST/ASG with USS (Universal Semantic Structure)",
-)
+# Initialize the MCP server
+# FastMCP does not support 'version' and 'description' in __init__ in recent versions
+mcp = FastMCP("AstAnalyzer")
 
 # Register tools with the server
 register_tools(mcp)
