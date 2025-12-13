@@ -7,11 +7,21 @@ processing from client AI and return lightweight responses.
 
 import asyncio
 import os
+from pathlib import Path
 from typing import List, Optional
 
 import httpx
 
 from ast_mcp_server.uss_core import UniversalGraph, UniversalNode
+
+# Load .env from project root
+try:
+    from dotenv import load_dotenv
+
+    env_path = Path(__file__).parent.parent / ".env"
+    load_dotenv(env_path)
+except ImportError:
+    pass  # dotenv not installed, rely on system env vars
 
 
 class ServerLLM:
@@ -20,11 +30,13 @@ class ServerLLM:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "anthropic/claude-3-haiku",
+        model: Optional[str] = None,
         base_url: str = "https://openrouter.ai/api/v1",
     ) -> None:
         self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
-        self.model = os.environ.get("OPENROUTER_CHAT_MODEL", model)
+        self.model = model or os.environ.get(
+            "OPENROUTER_CHAT_MODEL", "anthropic/claude-3-haiku"
+        )
         self.base_url = base_url
 
         if not self.api_key:

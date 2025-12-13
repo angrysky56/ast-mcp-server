@@ -231,6 +231,7 @@ def analyze_project(
     project_name: str,
     language: Optional[str] = None,
     filename: Optional[str] = None,
+    include_summary: bool = True,
 ) -> Dict:
     """
     Analyze code and save results to analyzed_projects folder.
@@ -242,12 +243,14 @@ def analyze_project(
     - classes.json - All class definitions
     - imports.json - All imports/dependencies
     - structure.json - Code metrics and overview
+    - summary.txt - AI-generated summary (if include_summary=True and LLM configured)
 
     Args:
         code: Source code to analyze
         project_name: Name for the project (used in output folder name)
         language: Programming language (optional, auto-detected)
         filename: Source filename (optional)
+        include_summary: Generate AI summary using server LLM (default True)
 
     Returns:
         Dictionary with file paths to saved analysis, NOT the full AST
@@ -277,8 +280,52 @@ def analyze_project(
         code=code,
     )
 
+    # Generate AI summary if requested and LLM is available
+    ai_summary = None
+    if include_summary:
+        try:
+            from ast_mcp_server.server_llm import get_server_llm
+
+            llm = get_server_llm()
+
+            # Build context for summary
+            func_count = (
+                len(structure_data.get("functions", [])) if structure_data else 0
+            )
+            class_count = (
+                len(structure_data.get("classes", [])) if structure_data else 0
+            )
+            import_count = (
+                len(structure_data.get("imports", [])) if structure_data else 0
+            )
+
+            prompt = f"""Summarize this code analysis in 2-3 sentences:
+
+Project: {project_name}
+Language: {ast_data.get("language", "unknown")}
+Functions: {func_count}
+Classes: {class_count}
+Imports: {import_count}
+
+Code preview (first 500 chars):
+{code[:500]}
+
+Provide a concise summary of what this code does."""
+
+            ai_summary = llm.chat_sync(prompt, max_tokens=200)
+
+            # Save summary to file
+            from pathlib import Path
+
+            summary_path = Path(result["folder"]) / "summary.txt"
+            summary_path.write_text(ai_summary)
+            result["files_created"].append("summary.txt")
+
+        except Exception as e:
+            ai_summary = f"(Summary unavailable: {e})"
+
     # Return paths, not the vast data
-    return {
+    response: Dict = {
         "status": "success",
         "project_name": project_name,
         "language": ast_data.get("language", "unknown"),
@@ -287,6 +334,11 @@ def analyze_project(
         "message": f"Analysis saved to {result['folder']}",
         "tip": "View individual files: functions.json, classes.json, imports.json, structure.json",
     }
+
+    if ai_summary:
+        response["summary"] = ai_summary
+
+    return response
 
 
 # Enhanced tools from server_enhanced.py

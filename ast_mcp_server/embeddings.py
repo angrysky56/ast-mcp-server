@@ -6,9 +6,19 @@ Provides embedding functionality via OpenRouter API.
 
 import asyncio
 import os
+from pathlib import Path
 from typing import List, Optional
 
 import httpx
+
+# Load .env from project root
+try:
+    from dotenv import load_dotenv
+
+    env_path = Path(__file__).parent.parent / ".env"
+    load_dotenv(env_path)
+except ImportError:
+    pass  # dotenv not installed, rely on system env vars
 
 
 class EmbeddingClient:
@@ -17,11 +27,13 @@ class EmbeddingClient:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "openai/text-embedding-3-small",
+        model: Optional[str] = None,
         base_url: str = "https://openrouter.ai/api/v1",
     ) -> None:
         self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
-        self.model = model
+        self.model = model or os.environ.get(
+            "OPENROUTER_EMBED_MODEL", "openai/text-embedding-3-small"
+        )
         self.base_url = base_url
 
         if not self.api_key:
