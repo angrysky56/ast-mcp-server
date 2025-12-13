@@ -4,13 +4,17 @@ Script to setup tree-sitter language parsers using individual language modules.
 This script prepares the language parsers for use in the AST MCP server.
 """
 
-import os
 import importlib
 import importlib.util
+import os
+from typing import Dict
+
 from tree_sitter import Language, Parser
 
 # Define the path to store parser-related files
-PARSERS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ast_mcp_server/parsers")
+PARSERS_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "ast_mcp_server/parsers"
+)
 os.makedirs(PARSERS_PATH, exist_ok=True)
 
 # Define the language modules to use
@@ -25,10 +29,11 @@ LANGUAGE_MODULES = {
     "java": "tree_sitter_java",
 }
 
-def install_missing_modules():
+
+def install_missing_modules() -> bool:
     """Install any missing tree-sitter language modules."""
     missing_modules = []
-    for language, module_name in LANGUAGE_MODULES.items():
+    for _, module_name in LANGUAGE_MODULES.items():
         try:
             importlib.import_module(module_name)
             print(f"✓ {module_name} is already installed")
@@ -36,14 +41,17 @@ def install_missing_modules():
             missing_modules.append(module_name)
 
     if missing_modules:
-        print(f"The following modules need to be installed: {', '.join(missing_modules)}")
+        print(
+            f"The following modules need to be installed: {', '.join(missing_modules)}"
+        )
         print("Please install them using:")
         print(f"pip install {' '.join(missing_modules)}")
         return False
 
     return True
 
-def setup_languages():
+
+def setup_languages() -> Dict[str, Language]:
     """Setup tree-sitter languages and test them."""
     languages = {}
 
@@ -53,7 +61,10 @@ def setup_languages():
             module = importlib.import_module(module_name)
 
             # Get the language object
-            lang = Language(module.language())
+            if module_name == "tree_sitter_typescript":
+                lang = Language(module.language_typescript())
+            else:
+                lang = Language(module.language())
             languages[lang_name] = lang
             print(f"Successfully loaded {lang_name} language")
         except Exception as e:
@@ -61,7 +72,8 @@ def setup_languages():
 
     return languages
 
-def test_parsers(languages):
+
+def test_parsers(languages: Dict[str, Language]) -> bool:
     """Test that the parsers work correctly."""
     success = True
 
@@ -79,13 +91,13 @@ def test_parsers(languages):
             elif lang_name == "typescript":
                 test_code = b"function hello(): string { console.log('world'); return 'hello'; }"
             elif lang_name == "go":
-                test_code = b"func main() { fmt.Println(\"Hello World\") }"
+                test_code = b'func main() { fmt.Println("Hello World") }'
             elif lang_name == "rust":
-                test_code = b"fn main() { println!(\"Hello World\"); }"
+                test_code = b'fn main() { println!("Hello World"); }'
             elif lang_name in ["c", "cpp"]:
-                test_code = b"int main() { printf(\"Hello World\\n\"); return 0; }"
+                test_code = b'int main() { printf("Hello World\\n"); return 0; }'
             elif lang_name == "java":
-                test_code = b"class Main { public static void main(String[] args) { System.out.println(\"Hello World\"); } }"
+                test_code = b'class Main { public static void main(String[] args) { System.out.println("Hello World"); } }'
             else:
                 test_code = b"// Test code for " + lang_name.encode()
 
@@ -104,14 +116,16 @@ def test_parsers(languages):
 
     return success
 
-def write_parser_info(languages):
+
+def write_parser_info(languages: Dict[str, Language]) -> None:
     """Write parser info to a file that can be loaded by the server."""
     # Create a file to indicate parsers are available and list supported languages
     with open(os.path.join(PARSERS_PATH, "parsers_available.txt"), "w") as f:
         f.write("Tree-sitter language parsers are available.\n")
         f.write("LANGUAGES: " + ", ".join(languages.keys()))
 
-def main():
+
+def main() -> None:
     """Main entry point for building parsers."""
     try:
         print("Checking if required language modules are installed...")

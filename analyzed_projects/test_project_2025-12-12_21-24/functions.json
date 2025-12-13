@@ -1,0 +1,33 @@
+{
+  "count": 3,
+  "definitions": [
+    {
+      "name": "add",
+      "parameters": [
+        "self"
+      ],
+      "location": {
+        "start_line": 6,
+        "end_line": 7
+      }
+    },
+    {
+      "name": "subtract",
+      "parameters": [
+        "self"
+      ],
+      "location": {
+        "start_line": 9,
+        "end_line": 10
+      }
+    },
+    {
+      "name": "main",
+      "parameters": [],
+      "location": {
+        "start_line": 12,
+        "end_line": 15
+      }
+    }
+  ]
+}

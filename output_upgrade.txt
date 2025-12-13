@@ -1,0 +1,46 @@
+Checking if required language modules are installed...
+✓ tree_sitter_python is already installed
+✓ tree_sitter_javascript is already installed
+✓ tree_sitter_typescript is already installed
+✓ tree_sitter_go is already installed
+✓ tree_sitter_rust is already installed
+✓ tree_sitter_c is already installed
+✓ tree_sitter_cpp is already installed
+✓ tree_sitter_java is already installed
+Setting up tree-sitter languages...
+Successfully loaded python language
+Successfully loaded javascript language
+Successfully loaded typescript language
+Successfully loaded go language
+Successfully loaded rust language
+Successfully loaded c language
+Successfully loaded cpp language
+Successfully loaded java language
+Testing parsers...
+Successfully tested python parser
+  Root node type: module
+  Tree structure: (module (function_definition name: (identifier) parameters: (parameters) body: (block (expression_statement (call function: (identifier) arguments: (argument_list (string (string_start) (string_content) (string_end))))))))
+--------------------------------------------------
+Successfully tested javascript parser
+  Root node type: program
+  Tree structure: (program (function_declaration name: (identifier) parameters: (formal_parameters) body: (statement_block (expression_statement (call_expression function: (member_expression object: (identifier) property: (property_identifier)) arguments: (arguments (string (string_fragment))))))))
+--------------------------------------------------
+Successfully tested typescript parser
+  Root node type: program
+  Tree structure: (program (function_declaration name: (identifier) parameters: (formal_parameters) return_type: (type_annotation (predefined_type)) body: (statement_block (expression_statement (call_expression function: (member_expression object: (identifier) property: (property_identifier)) arguments: (arguments (string (string_fragment))))) (return_statement (string (string_fragment))))))
+--------------------------------------------------
+Successfully tested go parser
+  Root node type: source_file
+  Tree structure: (source_file (function_declaration name: (identifier) parameters: (parameter_list) body: (block (expression_statement (call_expression function: (selector_expression operand: (identifier) field: (field_identifier)) arguments: (argument_list (interpreted_string_literal (interpreted_string_literal_content))))))))
+--------------------------------------------------
+Error testing rust parser: Incompatible Language version 15. Must be between 13 and 14
+Error testing c parser: Incompatible Language version 15. Must be between 13 and 14
+Successfully tested cpp parser
+  Root node type: translation_unit
+  Tree structure: (translation_unit (function_definition type: (primitive_type) declarator: (function_declarator declarator: (identifier) parameters: (parameter_list)) body: (compound_statement (expression_statement (call_expression function: (identifier) arguments: (argument_list (string_literal (string_content) (escape_sequence))))) (return_statement (number_literal)))))
+--------------------------------------------------
+Successfully tested java parser
+  Root node type: program
+  Tree structure: (program (class_declaration name: (identifier) body: (class_body (method_declaration (modifiers) type: (void_type) name: (identifier) parameters: (formal_parameters (formal_parameter type: (array_type element: (type_identifier) dimensions: (dimensions)) name: (identifier))) body: (block (expression_statement (method_invocation object: (field_access object: (identifier) field: (identifier)) name: (identifier) arguments: (argument_list (string_literal (string_fragment))))))))))
+--------------------------------------------------
+Some parsers failed testing.

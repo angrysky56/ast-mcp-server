@@ -8,18 +8,27 @@ and reason about code. It includes enhanced features for improved scope handling
 incremental parsing, and performance optimizations for large codebases.
 """
 
-import os
 import json
-from mcp.server.fastmcp import FastMCP
+import os
+from collections import OrderedDict
 from typing import Dict, Optional
+
+from mcp.server.fastmcp import FastMCP
+
+from ast_mcp_server.resources import (
+    CACHE_DIR,
+    cache_resource,
+    get_code_hash,
+    register_resources,
+)
 
 # Import our tools and resources
 from ast_mcp_server.tools import register_tools
-from ast_mcp_server.resources import register_resources, cache_resource, get_code_hash, CACHE_DIR
 
 # Import our enhanced tools if they exist
 try:
     from ast_mcp_server.enhanced_tools import register_enhanced_tools
+
     ENHANCED_TOOLS_AVAILABLE = True
 except ImportError:
     register_enhanced_tools = None
@@ -28,6 +37,7 @@ except ImportError:
 # Import our transformation tools
 try:
     from ast_mcp_server.transformation_tools import register_transformation_tools
+
     TRANSFORMATION_TOOLS_AVAILABLE = True
 except ImportError:
     register_transformation_tools = None
@@ -37,7 +47,7 @@ except ImportError:
 mcp = FastMCP(
     "AstAnalyzer",
     version="0.2.0",
-    description="Code structure and semantic analysis using AST/ASG with enhanced features"
+    description="Code structure and semantic analysis using AST/ASG with enhanced features",
 )
 
 # Register tools with the server
@@ -54,14 +64,43 @@ if TRANSFORMATION_TOOLS_AVAILABLE and register_transformation_tools is not None:
 # Register resources with the server
 register_resources(mcp)
 
-# Cache for storing previous ASTs for incremental parsing
-AST_CACHE = {}
+# LRU cache for storing previous ASTs for incremental parsing
+MAX_AST_CACHE_SIZE = int(os.environ.get("AST_CACHE_SIZE", "100"))
+
+
+class LRUCache(OrderedDict):
+    """LRU cache with maximum size limit to prevent memory leaks."""
+
+    def __init__(self, max_size: int = 100):
+        super().__init__()
+        self.max_size = max_size
+
+    def __setitem__(self, key: str, value: Dict) -> None:
+        if key in self:
+            self.move_to_end(key)
+        super().__setitem__(key, value)
+        if len(self) > self.max_size:
+            oldest = next(iter(self))
+            del self[oldest]
+
+    def get_with_touch(self, key: str) -> Optional[Dict]:
+        """Get an item and move it to the end (most recently used)."""
+        if key in self:
+            self.move_to_end(key)
+            return self[key]
+        return None
+
+
+AST_CACHE: LRUCache = LRUCache(MAX_AST_CACHE_SIZE)
 
 # Add custom handlers for tool operations
 # These ensure that results are cached for resource access
 
+
 @mcp.tool()
-def parse_and_cache(code: str, language: Optional[str] = None, filename: Optional[str] = None) -> Dict:
+def parse_and_cache(
+    code: str, language: Optional[str] = None, filename: Optional[str] = None
+) -> Dict:
     """
     Parse code into an AST and cache it for resource access.
 
@@ -90,15 +129,15 @@ def parse_and_cache(code: str, language: Optional[str] = None, filename: Optiona
         cache_resource(code, "ast", ast_data)
 
         # Return the AST with a resource URI
-        return {
-            "ast": ast_data,
-            "resource_uri": f"ast://{code_hash}"
-        }
+        return {"ast": ast_data, "resource_uri": f"ast://{code_hash}"}
     else:
         return ast_data
 
+
 @mcp.tool()
-def generate_and_cache_asg(code: str, language: Optional[str] = None, filename: Optional[str] = None) -> Dict:
+def generate_and_cache_asg(
+    code: str, language: Optional[str] = None, filename: Optional[str] = None
+) -> Dict:
     """
     Generate an ASG from code and cache it for resource access.
 
@@ -114,7 +153,7 @@ def generate_and_cache_asg(code: str, language: Optional[str] = None, filename: 
     Returns:
         Dictionary with ASG data and resource URI
     """
-    from ast_mcp_server.tools import parse_code_to_ast, create_asg_from_ast
+    from ast_mcp_server.tools import create_asg_from_ast, parse_code_to_ast
 
     # Generate a hash for the code
     code_hash = get_code_hash(code)
@@ -133,13 +172,13 @@ def generate_and_cache_asg(code: str, language: Optional[str] = None, filename: 
     cache_resource(code, "asg", asg_data)
 
     # Return the ASG with a resource URI
-    return {
-        "asg": asg_data,
-        "resource_uri": f"asg://{code_hash}"
-    }
+    return {"asg": asg_data, "resource_uri": f"asg://{code_hash}"}
+
 
 @mcp.tool()
-def analyze_and_cache(code: str, language: Optional[str] = None, filename: Optional[str] = None) -> Dict:
+def analyze_and_cache(
+    code: str, language: Optional[str] = None, filename: Optional[str] = None
+) -> Dict:
     """
     Analyze code structure and cache the results for resource access.
 
@@ -168,23 +207,91 @@ def analyze_and_cache(code: str, language: Optional[str] = None, filename: Optio
         cache_resource(code, "analysis", analysis_data)
 
         # Return the analysis with a resource URI
-        return {
-            "analysis": analysis_data,
-            "resource_uri": f"analysis://{code_hash}"
-        }
+        return {"analysis": analysis_data, "resource_uri": f"analysis://{code_hash}"}
     else:
         return analysis_data
 
+
+@mcp.tool()
+def analyze_project(
+    code: str,
+    project_name: str,
+    language: Optional[str] = None,
+    filename: Optional[str] = None,
+) -> Dict:
+    """
+    Analyze code and save results to analyzed_projects folder.
+
+    Instead of returning vast AST data, this tool saves analysis to
+    organized files and returns file paths. The output is structured
+    into logical sections:
+    - functions.json - All function definitions
+    - classes.json - All class definitions
+    - imports.json - All imports/dependencies
+    - structure.json - Code metrics and overview
+
+    Args:
+        code: Source code to analyze
+        project_name: Name for the project (used in output folder name)
+        language: Programming language (optional, auto-detected)
+        filename: Source filename (optional)
+
+    Returns:
+        Dictionary with file paths to saved analysis, NOT the full AST
+    """
+    from ast_mcp_server.output_manager import get_output_manager
+    from ast_mcp_server.tools import (
+        analyze_code_structure,
+        create_asg_from_ast,
+        parse_code_to_ast,
+    )
+
+    # Parse and analyze
+    ast_data = parse_code_to_ast(code, language, filename)
+    if "error" in ast_data:
+        return ast_data
+
+    asg_data = create_asg_from_ast(ast_data)
+    structure_data = analyze_code_structure(code, language, filename)
+
+    # Save to organized files
+    output_manager = get_output_manager()
+    result = output_manager.save_analysis(
+        project_name=project_name,
+        ast_data=ast_data,
+        asg_data=asg_data if "error" not in asg_data else None,
+        structure_data=structure_data if "error" not in structure_data else None,
+        code=code,
+    )
+
+    # Return paths, not the vast data
+    return {
+        "status": "success",
+        "project_name": project_name,
+        "language": ast_data.get("language", "unknown"),
+        "output_folder": result["folder"],
+        "files_created": result["files_created"],
+        "message": f"Analysis saved to {result['folder']}",
+        "tip": "View individual files: functions.json, classes.json, imports.json, structure.json",
+    }
+
+
 # Enhanced tools from server_enhanced.py
 if ENHANCED_TOOLS_AVAILABLE:
-    from ast_mcp_server.enhanced_tools import parse_code_to_ast_incremental, create_enhanced_asg_from_ast, generate_ast_diff
+    from ast_mcp_server.enhanced_tools import (
+        create_enhanced_asg_from_ast,
+        generate_ast_diff,
+        parse_code_to_ast_incremental,
+    )
 
     @mcp.tool()
     def parse_and_cache_incremental(
         code: str,
         language: Optional[str] = None,
         filename: Optional[str] = None,
-        code_id: Optional[str] = None  # Optional identifier for the code (e.g. file path)
+        code_id: Optional[
+            str
+        ] = None,  # Optional identifier for the code (e.g. file path)
     ) -> Dict:
         """
         Parse code into an AST incrementally and cache it for resource access.
@@ -222,7 +329,7 @@ if ENHANCED_TOOLS_AVAILABLE:
         AST_CACHE[cache_key] = {
             "code": code,
             "ast_data": ast_data,
-            "language": ast_data.get("language")
+            "language": ast_data.get("language"),
         }
 
         # Cache the result for resource access
@@ -233,16 +340,14 @@ if ENHANCED_TOOLS_AVAILABLE:
             return {
                 "ast": ast_data,
                 "resource_uri": f"ast://{code_hash}",
-                "incremental": old_code is not None
+                "incremental": old_code is not None,
             }
         else:
             return ast_data
 
     @mcp.tool()
     def generate_and_cache_enhanced_asg(
-        code: str,
-        language: Optional[str] = None,
-        filename: Optional[str] = None
+        code: str, language: Optional[str] = None, filename: Optional[str] = None
     ) -> Dict:
         """
         Generate an enhanced ASG from code and cache it for resource access.
@@ -278,17 +383,14 @@ if ENHANCED_TOOLS_AVAILABLE:
         cache_resource(code, "enhanced_asg", asg_data)
 
         # Return the ASG with a resource URI
-        return {
-            "asg": asg_data,
-            "resource_uri": f"enhanced_asg://{code_hash}"
-        }
+        return {"asg": asg_data, "resource_uri": f"enhanced_asg://{code_hash}"}
 
     @mcp.tool()
     def ast_diff_and_cache(
         old_code: str,
         new_code: str,
         language: Optional[str] = None,
-        filename: Optional[str] = None
+        filename: Optional[str] = None,
     ) -> Dict:
         """
         Generate an AST diff between old and new code versions and cache it.
@@ -306,8 +408,12 @@ if ENHANCED_TOOLS_AVAILABLE:
             Dictionary with diff data and resource URIs
         """
         # Parse old and new code to ASTs
-        ast_old = parse_code_to_ast_incremental(old_code, language=language, filename=filename)
-        ast_new = parse_code_to_ast_incremental(new_code, language=language, filename=filename)
+        ast_old = parse_code_to_ast_incremental(
+            old_code, language=language, filename=filename
+        )
+        ast_new = parse_code_to_ast_incremental(
+            new_code, language=language, filename=filename
+        )
 
         if "error" in ast_old:
             return ast_old
@@ -333,7 +439,7 @@ if ENHANCED_TOOLS_AVAILABLE:
             "diff": diff_data,
             "resource_uri": f"diff://{diff_hash}",
             "old_uri": f"ast://{old_hash}",
-            "new_uri": f"ast://{new_hash}"
+            "new_uri": f"ast://{new_hash}",
         }
 
     # Register enhanced resources
@@ -354,7 +460,7 @@ if ENHANCED_TOOLS_AVAILABLE:
 
         if os.path.exists(cache_path):
             try:
-                with open(cache_path, 'r') as f:
+                with open(cache_path, "r") as f:
                     return json.load(f)
             except Exception as e:
                 return {"error": f"Error reading cached diff: {e}"}
@@ -380,12 +486,15 @@ if ENHANCED_TOOLS_AVAILABLE:
 
         if os.path.exists(cache_path):
             try:
-                with open(cache_path, 'r') as f:
+                with open(cache_path, "r") as f:
                     return json.load(f)
             except Exception as e:
                 return {"error": f"Error reading cached enhanced ASG: {e}"}
 
-        return {"error": "Enhanced ASG not found. Please use generate_and_cache_enhanced_asg tool first."}
+        return {
+            "error": "Enhanced ASG not found. Please use generate_and_cache_enhanced_asg tool first."
+        }
+
 
 def main():
     """Main entry point for the AST MCP Server."""
@@ -409,11 +518,13 @@ def main():
         print("Enhanced tools module not found. Only basic functionality is available.")
         print("Create ast_mcp_server/enhanced_tools.py to enable advanced features.")
 
-    # Report on transformation tools availability  
+    # Report on transformation tools availability
     if TRANSFORMATION_TOOLS_AVAILABLE:
         print("Code transformation tools (ast-grep integration) are available.")
     else:
-        print("Transformation tools not available. Install ast-grep-cli for code transformation features.")
+        print(
+            "Transformation tools not available. Install ast-grep-cli for code transformation features."
+        )
 
     # Start the MCP server
     print("Starting AST/ASG Code Analysis MCP Server...")

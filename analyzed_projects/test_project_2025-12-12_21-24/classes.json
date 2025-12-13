@@ -1,0 +1,12 @@
+{
+  "count": 1,
+  "definitions": [
+    {
+      "name": "Calculator",
+      "location": {
+        "start_line": 5,
+        "end_line": 10
+      }
+    }
+  ]
+}

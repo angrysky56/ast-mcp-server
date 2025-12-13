@@ -1,0 +1,13 @@
+{
+  "language": "python",
+  "code_length": 312,
+  "complexity_metrics": {
+    "max_nesting_level": 1,
+    "total_nodes": 133
+  },
+  "summary": {
+    "total_functions": 3,
+    "total_classes": 1,
+    "total_imports": 2
+  }
+}

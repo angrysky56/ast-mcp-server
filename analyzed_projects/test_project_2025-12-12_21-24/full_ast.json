@@ -1,0 +1,1965 @@
+{
+  "language": "python",
+  "ast": {
+    "type": "module",
+    "start_byte": 1,
+    "end_byte": 312,
+    "start_point": {
+      "row": 1,
+      "column": 0
+    },
+    "end_point": {
+      "row": 18,
+      "column": 0
+    },
+    "text": "import os\nfrom typing import Dict\n\nclass Calculator:\n    def add(self, a: int, b: int) -> int:\n        return a + b\n    \n    def subtract(self, a: int, b: int) -> int:\n        return a - b\n\ndef main():\n    calc = Calculator()\n    result = calc.add(1, 2)\n    print(result)\n\nif __name__ == \"__main__\":\n    main()\n",
+    "children": [
+      {
+        "type": "import_statement",
+        "start_byte": 1,
+        "end_byte": 10,
+        "start_point": {
+          "row": 1,
+          "column": 0
+        },
+        "end_point": {
+          "row": 1,
+          "column": 9
+        },
+        "text": "import os",
+        "children": [
+          {
+            "type": "import",
+            "start_byte": 1,
+            "end_byte": 7,
+            "start_point": {
+              "row": 1,
+              "column": 0
+            },
+            "end_point": {
+              "row": 1,
+              "column": 6
+            },
+            "text": "import"
+          },
+          {
+            "type": "dotted_name",
+            "start_byte": 8,
+            "end_byte": 10,
+            "start_point": {
+              "row": 1,
+              "column": 7
+            },
+            "end_point": {
+              "row": 1,
+              "column": 9
+            },
+            "text": "os",
+            "children": [
+              {
+                "type": "identifier",
+                "start_byte": 8,
+                "end_byte": 10,
+                "start_point": {
+                  "row": 1,
+                  "column": 7
+                },
+                "end_point": {
+                  "row": 1,
+                  "column": 9
+                },
+                "text": "os"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "import_from_statement",
+        "start_byte": 11,
+        "end_byte": 34,
+        "start_point": {
+          "row": 2,
+          "column": 0
+        },
+        "end_point": {
+          "row": 2,
+          "column": 23
+        },
+        "text": "from typing import Dict",
+        "children": [
+          {
+            "type": "from",
+            "start_byte": 11,
+            "end_byte": 15,
+            "start_point": {
+              "row": 2,
+              "column": 0
+            },
+            "end_point": {
+              "row": 2,
+              "column": 4
+            },
+            "text": "from"
+          },
+          {
+            "type": "dotted_name",
+            "start_byte": 16,
+            "end_byte": 22,
+            "start_point": {
+              "row": 2,
+              "column": 5
+            },
+            "end_point": {
+              "row": 2,
+              "column": 11
+            },
+            "text": "typing",
+            "children": [
+              {
+                "type": "identifier",
+                "start_byte": 16,
+                "end_byte": 22,
+                "start_point": {
+                  "row": 2,
+                  "column": 5
+                },
+                "end_point": {
+                  "row": 2,
+                  "column": 11
+                },
+                "text": "typing"
+              }
+            ]
+          },
+          {
+            "type": "import",
+            "start_byte": 23,
+            "end_byte": 29,
+            "start_point": {
+              "row": 2,
+              "column": 12
+            },
+            "end_point": {
+              "row": 2,
+              "column": 18
+            },
+            "text": "import"
+          },
+          {
+            "type": "dotted_name",
+            "start_byte": 30,
+            "end_byte": 34,
+            "start_point": {
+              "row": 2,
+              "column": 19
+            },
+            "end_point": {
+              "row": 2,
+              "column": 23
+            },
+            "text": "Dict",
+            "children": [
+              {
+                "type": "identifier",
+                "start_byte": 30,
+                "end_byte": 34,
+                "start_point": {
+                  "row": 2,
+                  "column": 19
+                },
+                "end_point": {
+                  "row": 2,
+                  "column": 23
+                },
+                "text": "Dict"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "class_definition",
+        "start_byte": 36,
+        "end_byte": 189,
+        "start_point": {
+          "row": 4,
+          "column": 0
+        },
+        "end_point": {
+          "row": 9,
+          "column": 20
+        },
+        "text": "class Calculator:\n    def add(self, a: int, b: int) -> int:\n        return a + b\n    \n    def subtract(self, a: int, b: int) -> int:\n        return a - b",
+        "children": [
+          {
+            "type": "class",
+            "start_byte": 36,
+            "end_byte": 41,
+            "start_point": {
+              "row": 4,
+              "column": 0
+            },
+            "end_point": {
+              "row": 4,
+              "column": 5
+            },
+            "text": "class"
+          },
+          {
+            "type": "identifier",
+            "start_byte": 42,
+            "end_byte": 52,
+            "start_point": {
+              "row": 4,
+              "column": 6
+            },
+            "end_point": {
+              "row": 4,
+              "column": 16
+            },
+            "text": "Calculator"
+          },
+          {
+            "type": ":",
+            "start_byte": 52,
+            "end_byte": 53,
+            "start_point": {
+              "row": 4,
+              "column": 16
+            },
+            "end_point": {
+              "row": 4,
+              "column": 17
+            },
+            "text": ":"
+          },
+          {
+            "type": "block",
+            "start_byte": 58,
+            "end_byte": 189,
+            "start_point": {
+              "row": 5,
+              "column": 4
+            },
+            "end_point": {
+              "row": 9,
+              "column": 20
+            },
+            "text": "def add(self, a: int, b: int) -> int:\n        return a + b\n    \n    def subtract(self, a: int, b: int) -> int:\n        return a - b",
+            "children": [
+              {
+                "type": "function_definition",
+                "start_byte": 58,
+                "end_byte": 116,
+                "start_point": {
+                  "row": 5,
+                  "column": 4
+                },
+                "end_point": {
+                  "row": 6,
+                  "column": 20
+                },
+                "text": "def add(self, a: int, b: int) -> int:\n        return a + b",
+                "children": [
+                  {
+                    "type": "def",
+                    "start_byte": 58,
+                    "end_byte": 61,
+                    "start_point": {
+                      "row": 5,
+                      "column": 4
+                    },
+                    "end_point": {
+                      "row": 5,
+                      "column": 7
+                    },
+                    "text": "def"
+                  },
+                  {
+                    "type": "identifier",
+                    "start_byte": 62,
+                    "end_byte": 65,
+                    "start_point": {
+                      "row": 5,
+                      "column": 8
+                    },
+                    "end_point": {
+                      "row": 5,
+                      "column": 11
+                    },
+                    "text": "add"
+                  },
+                  {
+                    "type": "parameters",
+                    "start_byte": 65,
+                    "end_byte": 87,
+                    "start_point": {
+                      "row": 5,
+                      "column": 11
+                    },
+                    "end_point": {
+                      "row": 5,
+                      "column": 33
+                    },
+                    "text": "(self, a: int, b: int)",
+                    "children": [
+                      {
+                        "type": "(",
+                        "start_byte": 65,
+                        "end_byte": 66,
+                        "start_point": {
+                          "row": 5,
+                          "column": 11
+                        },
+                        "end_point": {
+                          "row": 5,
+                          "column": 12
+                        },
+                        "text": "("
+                      },
+                      {
+                        "type": "identifier",
+                        "start_byte": 66,
+                        "end_byte": 70,
+                        "start_point": {
+                          "row": 5,
+                          "column": 12
+                        },
+                        "end_point": {
+                          "row": 5,
+                          "column": 16
+                        },
+                        "text": "self"
+                      },
+                      {
+                        "type": ",",
+                        "start_byte": 70,
+                        "end_byte": 71,
+                        "start_point": {
+                          "row": 5,
+                          "column": 16
+                        },
+                        "end_point": {
+                          "row": 5,
+                          "column": 17
+                        },
+                        "text": ","
+                      },
+                      {
+                        "type": "typed_parameter",
+                        "start_byte": 72,
+                        "end_byte": 78,
+                        "start_point": {
+                          "row": 5,
+                          "column": 18
+                        },
+                        "end_point": {
+                          "row": 5,
+                          "column": 24
+                        },
+                        "text": "a: int",
+                        "children": [
+                          {
+                            "type": "identifier",
+                            "start_byte": 72,
+                            "end_byte": 73,
+                            "start_point": {
+                              "row": 5,
+                              "column": 18
+                            },
+                            "end_point": {
+                              "row": 5,
+                              "column": 19
+                            },
+                            "text": "a"
+                          },
+                          {
+                            "type": ":",
+                            "start_byte": 73,
+                            "end_byte": 74,
+                            "start_point": {
+                              "row": 5,
+                              "column": 19
+                            },
+                            "end_point": {
+                              "row": 5,
+                              "column": 20
+                            },
+                            "text": ":"
+                          },
+                          {
+                            "type": "type",
+                            "start_byte": 75,
+                            "end_byte": 78,
+                            "start_point": {
+                              "row": 5,
+                              "column": 21
+                            },
+                            "end_point": {
+                              "row": 5,
+                              "column": 24
+                            },
+                            "text": "int",
+                            "children": [
+                              {
+                                "type": "identifier",
+                                "start_byte": 75,
+                                "end_byte": 78,
+                                "start_point": {
+                                  "row": 5,
+                                  "column": 21
+                                },
+                                "end_point": {
+                                  "row": 5,
+                                  "column": 24
+                                },
+                                "text": "int"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": ",",
+                        "start_byte": 78,
+                        "end_byte": 79,
+                        "start_point": {
+                          "row": 5,
+                          "column": 24
+                        },
+                        "end_point": {
+                          "row": 5,
+                          "column": 25
+                        },
+                        "text": ","
+                      },
+                      {
+                        "type": "typed_parameter",
+                        "start_byte": 80,
+                        "end_byte": 86,
+                        "start_point": {
+                          "row": 5,
+                          "column": 26
+                        },
+                        "end_point": {
+                          "row": 5,
+                          "column": 32
+                        },
+                        "text": "b: int",
+                        "children": [
+                          {
+                            "type": "identifier",
+                            "start_byte": 80,
+                            "end_byte": 81,
+                            "start_point": {
+                              "row": 5,
+                              "column": 26
+                            },
+                            "end_point": {
+                              "row": 5,
+                              "column": 27
+                            },
+                            "text": "b"
+                          },
+                          {
+                            "type": ":",
+                            "start_byte": 81,
+                            "end_byte": 82,
+                            "start_point": {
+                              "row": 5,
+                              "column": 27
+                            },
+                            "end_point": {
+                              "row": 5,
+                              "column": 28
+                            },
+                            "text": ":"
+                          },
+                          {
+                            "type": "type",
+                            "start_byte": 83,
+                            "end_byte": 86,
+                            "start_point": {
+                              "row": 5,
+                              "column": 29
+                            },
+                            "end_point": {
+                              "row": 5,
+                              "column": 32
+                            },
+                            "text": "int",
+                            "children": [
+                              {
+                                "type": "identifier",
+                                "start_byte": 83,
+                                "end_byte": 86,
+                                "start_point": {
+                                  "row": 5,
+                                  "column": 29
+                                },
+                                "end_point": {
+                                  "row": 5,
+                                  "column": 32
+                                },
+                                "text": "int"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": ")",
+                        "start_byte": 86,
+                        "end_byte": 87,
+                        "start_point": {
+                          "row": 5,
+                          "column": 32
+                        },
+                        "end_point": {
+                          "row": 5,
+                          "column": 33
+                        },
+                        "text": ")"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "->",
+                    "start_byte": 88,
+                    "end_byte": 90,
+                    "start_point": {
+                      "row": 5,
+                      "column": 34
+                    },
+                    "end_point": {
+                      "row": 5,
+                      "column": 36
+                    },
+                    "text": "->"
+                  },
+                  {
+                    "type": "type",
+                    "start_byte": 91,
+                    "end_byte": 94,
+                    "start_point": {
+                      "row": 5,
+                      "column": 37
+                    },
+                    "end_point": {
+                      "row": 5,
+                      "column": 40
+                    },
+                    "text": "int",
+                    "children": [
+                      {
+                        "type": "identifier",
+                        "start_byte": 91,
+                        "end_byte": 94,
+                        "start_point": {
+                          "row": 5,
+                          "column": 37
+                        },
+                        "end_point": {
+                          "row": 5,
+                          "column": 40
+                        },
+                        "text": "int"
+                      }
+                    ]
+                  },
+                  {
+                    "type": ":",
+                    "start_byte": 94,
+                    "end_byte": 95,
+                    "start_point": {
+                      "row": 5,
+                      "column": 40
+                    },
+                    "end_point": {
+                      "row": 5,
+                      "column": 41
+                    },
+                    "text": ":"
+                  },
+                  {
+                    "type": "block",
+                    "start_byte": 104,
+                    "end_byte": 116,
+                    "start_point": {
+                      "row": 6,
+                      "column": 8
+                    },
+                    "end_point": {
+                      "row": 6,
+                      "column": 20
+                    },
+                    "text": "return a + b",
+                    "children": [
+                      {
+                        "type": "return_statement",
+                        "start_byte": 104,
+                        "end_byte": 116,
+                        "start_point": {
+                          "row": 6,
+                          "column": 8
+                        },
+                        "end_point": {
+                          "row": 6,
+                          "column": 20
+                        },
+                        "text": "return a + b",
+                        "children": [
+                          {
+                            "type": "return",
+                            "start_byte": 104,
+                            "end_byte": 110,
+                            "start_point": {
+                              "row": 6,
+                              "column": 8
+                            },
+                            "end_point": {
+                              "row": 6,
+                              "column": 14
+                            },
+                            "text": "return"
+                          },
+                          {
+                            "type": "binary_operator",
+                            "start_byte": 111,
+                            "end_byte": 116,
+                            "start_point": {
+                              "row": 6,
+                              "column": 15
+                            },
+                            "end_point": {
+                              "row": 6,
+                              "column": 20
+                            },
+                            "text": "a + b",
+                            "children": [
+                              {
+                                "type": "identifier",
+                                "start_byte": 111,
+                                "end_byte": 112,
+                                "start_point": {
+                                  "row": 6,
+                                  "column": 15
+                                },
+                                "end_point": {
+                                  "row": 6,
+                                  "column": 16
+                                },
+                                "text": "a"
+                              },
+                              {
+                                "type": "+",
+                                "start_byte": 113,
+                                "end_byte": 114,
+                                "start_point": {
+                                  "row": 6,
+                                  "column": 17
+                                },
+                                "end_point": {
+                                  "row": 6,
+                                  "column": 18
+                                },
+                                "text": "+"
+                              },
+                              {
+                                "type": "identifier",
+                                "start_byte": 115,
+                                "end_byte": 116,
+                                "start_point": {
+                                  "row": 6,
+                                  "column": 19
+                                },
+                                "end_point": {
+                                  "row": 6,
+                                  "column": 20
+                                },
+                                "text": "b"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "function_definition",
+                "start_byte": 126,
+                "end_byte": 189,
+                "start_point": {
+                  "row": 8,
+                  "column": 4
+                },
+                "end_point": {
+                  "row": 9,
+                  "column": 20
+                },
+                "text": "def subtract(self, a: int, b: int) -> int:\n        return a - b",
+                "children": [
+                  {
+                    "type": "def",
+                    "start_byte": 126,
+                    "end_byte": 129,
+                    "start_point": {
+                      "row": 8,
+                      "column": 4
+                    },
+                    "end_point": {
+                      "row": 8,
+                      "column": 7
+                    },
+                    "text": "def"
+                  },
+                  {
+                    "type": "identifier",
+                    "start_byte": 130,
+                    "end_byte": 138,
+                    "start_point": {
+                      "row": 8,
+                      "column": 8
+                    },
+                    "end_point": {
+                      "row": 8,
+                      "column": 16
+                    },
+                    "text": "subtract"
+                  },
+                  {
+                    "type": "parameters",
+                    "start_byte": 138,
+                    "end_byte": 160,
+                    "start_point": {
+                      "row": 8,
+                      "column": 16
+                    },
+                    "end_point": {
+                      "row": 8,
+                      "column": 38
+                    },
+                    "text": "(self, a: int, b: int)",
+                    "children": [
+                      {
+                        "type": "(",
+                        "start_byte": 138,
+                        "end_byte": 139,
+                        "start_point": {
+                          "row": 8,
+                          "column": 16
+                        },
+                        "end_point": {
+                          "row": 8,
+                          "column": 17
+                        },
+                        "text": "("
+                      },
+                      {
+                        "type": "identifier",
+                        "start_byte": 139,
+                        "end_byte": 143,
+                        "start_point": {
+                          "row": 8,
+                          "column": 17
+                        },
+                        "end_point": {
+                          "row": 8,
+                          "column": 21
+                        },
+                        "text": "self"
+                      },
+                      {
+                        "type": ",",
+                        "start_byte": 143,
+                        "end_byte": 144,
+                        "start_point": {
+                          "row": 8,
+                          "column": 21
+                        },
+                        "end_point": {
+                          "row": 8,
+                          "column": 22
+                        },
+                        "text": ","
+                      },
+                      {
+                        "type": "typed_parameter",
+                        "start_byte": 145,
+                        "end_byte": 151,
+                        "start_point": {
+                          "row": 8,
+                          "column": 23
+                        },
+                        "end_point": {
+                          "row": 8,
+                          "column": 29
+                        },
+                        "text": "a: int",
+                        "children": [
+                          {
+                            "type": "identifier",
+                            "start_byte": 145,
+                            "end_byte": 146,
+                            "start_point": {
+                              "row": 8,
+                              "column": 23
+                            },
+                            "end_point": {
+                              "row": 8,
+                              "column": 24
+                            },
+                            "text": "a"
+                          },
+                          {
+                            "type": ":",
+                            "start_byte": 146,
+                            "end_byte": 147,
+                            "start_point": {
+                              "row": 8,
+                              "column": 24
+                            },
+                            "end_point": {
+                              "row": 8,
+                              "column": 25
+                            },
+                            "text": ":"
+                          },
+                          {
+                            "type": "type",
+                            "start_byte": 148,
+                            "end_byte": 151,
+                            "start_point": {
+                              "row": 8,
+                              "column": 26
+                            },
+                            "end_point": {
+                              "row": 8,
+                              "column": 29
+                            },
+                            "text": "int",
+                            "children": [
+                              {
+                                "type": "identifier",
+                                "start_byte": 148,
+                                "end_byte": 151,
+                                "start_point": {
+                                  "row": 8,
+                                  "column": 26
+                                },
+                                "end_point": {
+                                  "row": 8,
+                                  "column": 29
+                                },
+                                "text": "int"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": ",",
+                        "start_byte": 151,
+                        "end_byte": 152,
+                        "start_point": {
+                          "row": 8,
+                          "column": 29
+                        },
+                        "end_point": {
+                          "row": 8,
+                          "column": 30
+                        },
+                        "text": ","
+                      },
+                      {
+                        "type": "typed_parameter",
+                        "start_byte": 153,
+                        "end_byte": 159,
+                        "start_point": {
+                          "row": 8,
+                          "column": 31
+                        },
+                        "end_point": {
+                          "row": 8,
+                          "column": 37
+                        },
+                        "text": "b: int",
+                        "children": [
+                          {
+                            "type": "identifier",
+                            "start_byte": 153,
+                            "end_byte": 154,
+                            "start_point": {
+                              "row": 8,
+                              "column": 31
+                            },
+                            "end_point": {
+                              "row": 8,
+                              "column": 32
+                            },
+                            "text": "b"
+                          },
+                          {
+                            "type": ":",
+                            "start_byte": 154,
+                            "end_byte": 155,
+                            "start_point": {
+                              "row": 8,
+                              "column": 32
+                            },
+                            "end_point": {
+                              "row": 8,
+                              "column": 33
+                            },
+                            "text": ":"
+                          },
+                          {
+                            "type": "type",
+                            "start_byte": 156,
+                            "end_byte": 159,
+                            "start_point": {
+                              "row": 8,
+                              "column": 34
+                            },
+                            "end_point": {
+                              "row": 8,
+                              "column": 37
+                            },
+                            "text": "int",
+                            "children": [
+                              {
+                                "type": "identifier",
+                                "start_byte": 156,
+                                "end_byte": 159,
+                                "start_point": {
+                                  "row": 8,
+                                  "column": 34
+                                },
+                                "end_point": {
+                                  "row": 8,
+                                  "column": 37
+                                },
+                                "text": "int"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": ")",
+                        "start_byte": 159,
+                        "end_byte": 160,
+                        "start_point": {
+                          "row": 8,
+                          "column": 37
+                        },
+                        "end_point": {
+                          "row": 8,
+                          "column": 38
+                        },
+                        "text": ")"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "->",
+                    "start_byte": 161,
+                    "end_byte": 163,
+                    "start_point": {
+                      "row": 8,
+                      "column": 39
+                    },
+                    "end_point": {
+                      "row": 8,
+                      "column": 41
+                    },
+                    "text": "->"
+                  },
+                  {
+                    "type": "type",
+                    "start_byte": 164,
+                    "end_byte": 167,
+                    "start_point": {
+                      "row": 8,
+                      "column": 42
+                    },
+                    "end_point": {
+                      "row": 8,
+                      "column": 45
+                    },
+                    "text": "int",
+                    "children": [
+                      {
+                        "type": "identifier",
+                        "start_byte": 164,
+                        "end_byte": 167,
+                        "start_point": {
+                          "row": 8,
+                          "column": 42
+                        },
+                        "end_point": {
+                          "row": 8,
+                          "column": 45
+                        },
+                        "text": "int"
+                      }
+                    ]
+                  },
+                  {
+                    "type": ":",
+                    "start_byte": 167,
+                    "end_byte": 168,
+                    "start_point": {
+                      "row": 8,
+                      "column": 45
+                    },
+                    "end_point": {
+                      "row": 8,
+                      "column": 46
+                    },
+                    "text": ":"
+                  },
+                  {
+                    "type": "block",
+                    "start_byte": 177,
+                    "end_byte": 189,
+                    "start_point": {
+                      "row": 9,
+                      "column": 8
+                    },
+                    "end_point": {
+                      "row": 9,
+                      "column": 20
+                    },
+                    "text": "return a - b",
+                    "children": [
+                      {
+                        "type": "return_statement",
+                        "start_byte": 177,
+                        "end_byte": 189,
+                        "start_point": {
+                          "row": 9,
+                          "column": 8
+                        },
+                        "end_point": {
+                          "row": 9,
+                          "column": 20
+                        },
+                        "text": "return a - b",
+                        "children": [
+                          {
+                            "type": "return",
+                            "start_byte": 177,
+                            "end_byte": 183,
+                            "start_point": {
+                              "row": 9,
+                              "column": 8
+                            },
+                            "end_point": {
+                              "row": 9,
+                              "column": 14
+                            },
+                            "text": "return"
+                          },
+                          {
+                            "type": "binary_operator",
+                            "start_byte": 184,
+                            "end_byte": 189,
+                            "start_point": {
+                              "row": 9,
+                              "column": 15
+                            },
+                            "end_point": {
+                              "row": 9,
+                              "column": 20
+                            },
+                            "text": "a - b",
+                            "children": [
+                              {
+                                "type": "identifier",
+                                "start_byte": 184,
+                                "end_byte": 185,
+                                "start_point": {
+                                  "row": 9,
+                                  "column": 15
+                                },
+                                "end_point": {
+                                  "row": 9,
+                                  "column": 16
+                                },
+                                "text": "a"
+                              },
+                              {
+                                "type": "-",
+                                "start_byte": 186,
+                                "end_byte": 187,
+                                "start_point": {
+                                  "row": 9,
+                                  "column": 17
+                                },
+                                "end_point": {
+                                  "row": 9,
+                                  "column": 18
+                                },
+                                "text": "-"
+                              },
+                              {
+                                "type": "identifier",
+                                "start_byte": 188,
+                                "end_byte": 189,
+                                "start_point": {
+                                  "row": 9,
+                                  "column": 19
+                                },
+                                "end_point": {
+                                  "row": 9,
+                                  "column": 20
+                                },
+                                "text": "b"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "function_definition",
+        "start_byte": 191,
+        "end_byte": 272,
+        "start_point": {
+          "row": 11,
+          "column": 0
+        },
+        "end_point": {
+          "row": 14,
+          "column": 17
+        },
+        "text": "def main():\n    calc = Calculator()\n    result = calc.add(1, 2)\n    print(result)",
+        "children": [
+          {
+            "type": "def",
+            "start_byte": 191,
+            "end_byte": 194,
+            "start_point": {
+              "row": 11,
+              "column": 0
+            },
+            "end_point": {
+              "row": 11,
+              "column": 3
+            },
+            "text": "def"
+          },
+          {
+            "type": "identifier",
+            "start_byte": 195,
+            "end_byte": 199,
+            "start_point": {
+              "row": 11,
+              "column": 4
+            },
+            "end_point": {
+              "row": 11,
+              "column": 8
+            },
+            "text": "main"
+          },
+          {
+            "type": "parameters",
+            "start_byte": 199,
+            "end_byte": 201,
+            "start_point": {
+              "row": 11,
+              "column": 8
+            },
+            "end_point": {
+              "row": 11,
+              "column": 10
+            },
+            "text": "()",
+            "children": [
+              {
+                "type": "(",
+                "start_byte": 199,
+                "end_byte": 200,
+                "start_point": {
+                  "row": 11,
+                  "column": 8
+                },
+                "end_point": {
+                  "row": 11,
+                  "column": 9
+                },
+                "text": "("
+              },
+              {
+                "type": ")",
+                "start_byte": 200,
+                "end_byte": 201,
+                "start_point": {
+                  "row": 11,
+                  "column": 9
+                },
+                "end_point": {
+                  "row": 11,
+                  "column": 10
+                },
+                "text": ")"
+              }
+            ]
+          },
+          {
+            "type": ":",
+            "start_byte": 201,
+            "end_byte": 202,
+            "start_point": {
+              "row": 11,
+              "column": 10
+            },
+            "end_point": {
+              "row": 11,
+              "column": 11
+            },
+            "text": ":"
+          },
+          {
+            "type": "block",
+            "start_byte": 207,
+            "end_byte": 272,
+            "start_point": {
+              "row": 12,
+              "column": 4
+            },
+            "end_point": {
+              "row": 14,
+              "column": 17
+            },
+            "text": "calc = Calculator()\n    result = calc.add(1, 2)\n    print(result)",
+            "children": [
+              {
+                "type": "expression_statement",
+                "start_byte": 207,
+                "end_byte": 226,
+                "start_point": {
+                  "row": 12,
+                  "column": 4
+                },
+                "end_point": {
+                  "row": 12,
+                  "column": 23
+                },
+                "text": "calc = Calculator()",
+                "children": [
+                  {
+                    "type": "assignment",
+                    "start_byte": 207,
+                    "end_byte": 226,
+                    "start_point": {
+                      "row": 12,
+                      "column": 4
+                    },
+                    "end_point": {
+                      "row": 12,
+                      "column": 23
+                    },
+                    "text": "calc = Calculator()",
+                    "children": [
+                      {
+                        "type": "identifier",
+                        "start_byte": 207,
+                        "end_byte": 211,
+                        "start_point": {
+                          "row": 12,
+                          "column": 4
+                        },
+                        "end_point": {
+                          "row": 12,
+                          "column": 8
+                        },
+                        "text": "calc"
+                      },
+                      {
+                        "type": "=",
+                        "start_byte": 212,
+                        "end_byte": 213,
+                        "start_point": {
+                          "row": 12,
+                          "column": 9
+                        },
+                        "end_point": {
+                          "row": 12,
+                          "column": 10
+                        },
+                        "text": "="
+                      },
+                      {
+                        "type": "call",
+                        "start_byte": 214,
+                        "end_byte": 226,
+                        "start_point": {
+                          "row": 12,
+                          "column": 11
+                        },
+                        "end_point": {
+                          "row": 12,
+                          "column": 23
+                        },
+                        "text": "Calculator()",
+                        "children": [
+                          {
+                            "type": "identifier",
+                            "start_byte": 214,
+                            "end_byte": 224,
+                            "start_point": {
+                              "row": 12,
+                              "column": 11
+                            },
+                            "end_point": {
+                              "row": 12,
+                              "column": 21
+                            },
+                            "text": "Calculator"
+                          },
+                          {
+                            "type": "argument_list",
+                            "start_byte": 224,
+                            "end_byte": 226,
+                            "start_point": {
+                              "row": 12,
+                              "column": 21
+                            },
+                            "end_point": {
+                              "row": 12,
+                              "column": 23
+                            },
+                            "text": "()",
+                            "children": [
+                              {
+                                "type": "(",
+                                "start_byte": 224,
+                                "end_byte": 225,
+                                "start_point": {
+                                  "row": 12,
+                                  "column": 21
+                                },
+                                "end_point": {
+                                  "row": 12,
+                                  "column": 22
+                                },
+                                "text": "("
+                              },
+                              {
+                                "type": ")",
+                                "start_byte": 225,
+                                "end_byte": 226,
+                                "start_point": {
+                                  "row": 12,
+                                  "column": 22
+                                },
+                                "end_point": {
+                                  "row": 12,
+                                  "column": 23
+                                },
+                                "text": ")"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "expression_statement",
+                "start_byte": 231,
+                "end_byte": 254,
+                "start_point": {
+                  "row": 13,
+                  "column": 4
+                },
+                "end_point": {
+                  "row": 13,
+                  "column": 27
+                },
+                "text": "result = calc.add(1, 2)",
+                "children": [
+                  {
+                    "type": "assignment",
+                    "start_byte": 231,
+                    "end_byte": 254,
+                    "start_point": {
+                      "row": 13,
+                      "column": 4
+                    },
+                    "end_point": {
+                      "row": 13,
+                      "column": 27
+                    },
+                    "text": "result = calc.add(1, 2)",
+                    "children": [
+                      {
+                        "type": "identifier",
+                        "start_byte": 231,
+                        "end_byte": 237,
+                        "start_point": {
+                          "row": 13,
+                          "column": 4
+                        },
+                        "end_point": {
+                          "row": 13,
+                          "column": 10
+                        },
+                        "text": "result"
+                      },
+                      {
+                        "type": "=",
+                        "start_byte": 238,
+                        "end_byte": 239,
+                        "start_point": {
+                          "row": 13,
+                          "column": 11
+                        },
+                        "end_point": {
+                          "row": 13,
+                          "column": 12
+                        },
+                        "text": "="
+                      },
+                      {
+                        "type": "call",
+                        "start_byte": 240,
+                        "end_byte": 254,
+                        "start_point": {
+                          "row": 13,
+                          "column": 13
+                        },
+                        "end_point": {
+                          "row": 13,
+                          "column": 27
+                        },
+                        "text": "calc.add(1, 2)",
+                        "children": [
+                          {
+                            "type": "attribute",
+                            "start_byte": 240,
+                            "end_byte": 248,
+                            "start_point": {
+                              "row": 13,
+                              "column": 13
+                            },
+                            "end_point": {
+                              "row": 13,
+                              "column": 21
+                            },
+                            "text": "calc.add",
+                            "children": [
+                              {
+                                "type": "identifier",
+                                "start_byte": 240,
+                                "end_byte": 244,
+                                "start_point": {
+                                  "row": 13,
+                                  "column": 13
+                                },
+                                "end_point": {
+                                  "row": 13,
+                                  "column": 17
+                                },
+                                "text": "calc"
+                              },
+                              {
+                                "type": ".",
+                                "start_byte": 244,
+                                "end_byte": 245,
+                                "start_point": {
+                                  "row": 13,
+                                  "column": 17
+                                },
+                                "end_point": {
+                                  "row": 13,
+                                  "column": 18
+                                },
+                                "text": "."
+                              },
+                              {
+                                "type": "identifier",
+                                "start_byte": 245,
+                                "end_byte": 248,
+                                "start_point": {
+                                  "row": 13,
+                                  "column": 18
+                                },
+                                "end_point": {
+                                  "row": 13,
+                                  "column": 21
+                                },
+                                "text": "add"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "argument_list",
+                            "start_byte": 248,
+                            "end_byte": 254,
+                            "start_point": {
+                              "row": 13,
+                              "column": 21
+                            },
+                            "end_point": {
+                              "row": 13,
+                              "column": 27
+                            },
+                            "text": "(1, 2)",
+                            "children": [
+                              {
+                                "type": "(",
+                                "start_byte": 248,
+                                "end_byte": 249,
+                                "start_point": {
+                                  "row": 13,
+                                  "column": 21
+                                },
+                                "end_point": {
+                                  "row": 13,
+                                  "column": 22
+                                },
+                                "text": "("
+                              },
+                              {
+                                "type": "integer",
+                                "start_byte": 249,
+                                "end_byte": 250,
+                                "start_point": {
+                                  "row": 13,
+                                  "column": 22
+                                },
+                                "end_point": {
+                                  "row": 13,
+                                  "column": 23
+                                },
+                                "text": "1"
+                              },
+                              {
+                                "type": ",",
+                                "start_byte": 250,
+                                "end_byte": 251,
+                                "start_point": {
+                                  "row": 13,
+                                  "column": 23
+                                },
+                                "end_point": {
+                                  "row": 13,
+                                  "column": 24
+                                },
+                                "text": ","
+                              },
+                              {
+                                "type": "integer",
+                                "start_byte": 252,
+                                "end_byte": 253,
+                                "start_point": {
+                                  "row": 13,
+                                  "column": 25
+                                },
+                                "end_point": {
+                                  "row": 13,
+                                  "column": 26
+                                },
+                                "text": "2"
+                              },
+                              {
+                                "type": ")",
+                                "start_byte": 253,
+                                "end_byte": 254,
+                                "start_point": {
+                                  "row": 13,
+                                  "column": 26
+                                },
+                                "end_point": {
+                                  "row": 13,
+                                  "column": 27
+                                },
+                                "text": ")"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "expression_statement",
+                "start_byte": 259,
+                "end_byte": 272,
+                "start_point": {
+                  "row": 14,
+                  "column": 4
+                },
+                "end_point": {
+                  "row": 14,
+                  "column": 17
+                },
+                "text": "print(result)",
+                "children": [
+                  {
+                    "type": "call",
+                    "start_byte": 259,
+                    "end_byte": 272,
+                    "start_point": {
+                      "row": 14,
+                      "column": 4
+                    },
+                    "end_point": {
+                      "row": 14,
+                      "column": 17
+                    },
+                    "text": "print(result)",
+                    "children": [
+                      {
+                        "type": "identifier",
+                        "start_byte": 259,
+                        "end_byte": 264,
+                        "start_point": {
+                          "row": 14,
+                          "column": 4
+                        },
+                        "end_point": {
+                          "row": 14,
+                          "column": 9
+                        },
+                        "text": "print"
+                      },
+                      {
+                        "type": "argument_list",
+                        "start_byte": 264,
+                        "end_byte": 272,
+                        "start_point": {
+                          "row": 14,
+                          "column": 9
+                        },
+                        "end_point": {
+                          "row": 14,
+                          "column": 17
+                        },
+                        "text": "(result)",
+                        "children": [
+                          {
+                            "type": "(",
+                            "start_byte": 264,
+                            "end_byte": 265,
+                            "start_point": {
+                              "row": 14,
+                              "column": 9
+                            },
+                            "end_point": {
+                              "row": 14,
+                              "column": 10
+                            },
+                            "text": "("
+                          },
+                          {
+                            "type": "identifier",
+                            "start_byte": 265,
+                            "end_byte": 271,
+                            "start_point": {
+                              "row": 14,
+                              "column": 10
+                            },
+                            "end_point": {
+                              "row": 14,
+                              "column": 16
+                            },
+                            "text": "result"
+                          },
+                          {
+                            "type": ")",
+                            "start_byte": 271,
+                            "end_byte": 272,
+                            "start_point": {
+                              "row": 14,
+                              "column": 16
+                            },
+                            "end_point": {
+                              "row": 14,
+                              "column": 17
+                            },
+                            "text": ")"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "if_statement",
+        "start_byte": 274,
+        "end_byte": 311,
+        "start_point": {
+          "row": 16,
+          "column": 0
+        },
+        "end_point": {
+          "row": 17,
+          "column": 10
+        },
+        "text": "if __name__ == \"__main__\":\n    main()",
+        "children": [
+          {
+            "type": "if",
+            "start_byte": 274,
+            "end_byte": 276,
+            "start_point": {
+              "row": 16,
+              "column": 0
+            },
+            "end_point": {
+              "row": 16,
+              "column": 2
+            },
+            "text": "if"
+          },
+          {
+            "type": "comparison_operator",
+            "start_byte": 277,
+            "end_byte": 299,
+            "start_point": {
+              "row": 16,
+              "column": 3
+            },
+            "end_point": {
+              "row": 16,
+              "column": 25
+            },
+            "text": "__name__ == \"__main__\"",
+            "children": [
+              {
+                "type": "identifier",
+                "start_byte": 277,
+                "end_byte": 285,
+                "start_point": {
+                  "row": 16,
+                  "column": 3
+                },
+                "end_point": {
+                  "row": 16,
+                  "column": 11
+                },
+                "text": "__name__"
+              },
+              {
+                "type": "==",
+                "start_byte": 286,
+                "end_byte": 288,
+                "start_point": {
+                  "row": 16,
+                  "column": 12
+                },
+                "end_point": {
+                  "row": 16,
+                  "column": 14
+                },
+                "text": "=="
+              },
+              {
+                "type": "string",
+                "start_byte": 289,
+                "end_byte": 299,
+                "start_point": {
+                  "row": 16,
+                  "column": 15
+                },
+                "end_point": {
+                  "row": 16,
+                  "column": 25
+                },
+                "text": "\"__main__\"",
+                "children": [
+                  {
+                    "type": "string_start",
+                    "start_byte": 289,
+                    "end_byte": 290,
+                    "start_point": {
+                      "row": 16,
+                      "column": 15
+                    },
+                    "end_point": {
+                      "row": 16,
+                      "column": 16
+                    },
+                    "text": "\""
+                  },
+                  {
+                    "type": "string_content",
+                    "start_byte": 290,
+                    "end_byte": 298,
+                    "start_point": {
+                      "row": 16,
+                      "column": 16
+                    },
+                    "end_point": {
+                      "row": 16,
+                      "column": 24
+                    },
+                    "text": "__main__"
+                  },
+                  {
+                    "type": "string_end",
+                    "start_byte": 298,
+                    "end_byte": 299,
+                    "start_point": {
+                      "row": 16,
+                      "column": 24
+                    },
+                    "end_point": {
+                      "row": 16,
+                      "column": 25
+                    },
+                    "text": "\""
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": ":",
+            "start_byte": 299,
+            "end_byte": 300,
+            "start_point": {
+              "row": 16,
+              "column": 25
+            },
+            "end_point": {
+              "row": 16,
+              "column": 26
+            },
+            "text": ":"
+          },
+          {
+            "type": "block",
+            "start_byte": 305,
+            "end_byte": 311,
+            "start_point": {
+              "row": 17,
+              "column": 4
+            },
+            "end_point": {
+              "row": 17,
+              "column": 10
+            },
+            "text": "main()",
+            "children": [
+              {
+                "type": "expression_statement",
+                "start_byte": 305,
+                "end_byte": 311,
+                "start_point": {
+                  "row": 17,
+                  "column": 4
+                },
+                "end_point": {
+                  "row": 17,
+                  "column": 10
+                },
+                "text": "main()",
+                "children": [
+                  {
+                    "type": "call",
+                    "start_byte": 305,
+                    "end_byte": 311,
+                    "start_point": {
+                      "row": 17,
+                      "column": 4
+                    },
+                    "end_point": {
+                      "row": 17,
+                      "column": 10
+                    },
+                    "text": "main()",
+                    "children": [
+                      {
+                        "type": "identifier",
+                        "start_byte": 305,
+                        "end_byte": 309,
+                        "start_point": {
+                          "row": 17,
+                          "column": 4
+                        },
+                        "end_point": {
+                          "row": 17,
+                          "column": 8
+                        },
+                        "text": "main"
+                      },
+                      {
+                        "type": "argument_list",
+                        "start_byte": 309,
+                        "end_byte": 311,
+                        "start_point": {
+                          "row": 17,
+                          "column": 8
+                        },
+                        "end_point": {
+                          "row": 17,
+                          "column": 10
+                        },
+                        "text": "()",
+                        "children": [
+                          {
+                            "type": "(",
+                            "start_byte": 309,
+                            "end_byte": 310,
+                            "start_point": {
+                              "row": 17,
+                              "column": 8
+                            },
+                            "end_point": {
+                              "row": 17,
+                              "column": 9
+                            },
+                            "text": "("
+                          },
+                          {
+                            "type": ")",
+                            "start_byte": 310,
+                            "end_byte": 311,
+                            "start_point": {
+                              "row": 17,
+                              "column": 9
+                            },
+                            "end_point": {
+                              "row": 17,
+                              "column": 10
+                            },
+                            "text": ")"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
