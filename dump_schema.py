@@ -8,7 +8,7 @@ sys.path.append(os.getcwd())
 
 
 # Import the server tools registration
-async def main():
+async def main() -> None:
     try:
         from ast_mcp_server.server import mcp
 
