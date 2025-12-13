@@ -1,7 +1,6 @@
 """Dump all tool schemas from the MCP server."""
 
 import asyncio
-import json
 import os
 import sys
 

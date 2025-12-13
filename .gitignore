@@ -39,5 +39,5 @@ venv.bak/
 *.swo
 
 # Project specific
-ast_mcp_server/parsers/
 vendor/
+uss_data/chroma/

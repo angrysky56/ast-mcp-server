@@ -18,7 +18,7 @@ async def main() -> None:
         if tool.name == "sync_file_to_graph":
             print(f"Name: {tool.name}")
             print(f"Description: {tool.description}")
-            print(f"\nInput Schema:")
+            print("\nInput Schema:")
             print(json.dumps(tool.inputSchema, indent=2))
             break
 
