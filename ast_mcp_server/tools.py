@@ -601,14 +601,18 @@ def register_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def parse_to_ast(
-        code: str, language: Optional[str] = None, filename: Optional[str] = None
+        code: str,
+        language: Optional[str] = None,
+        filename: Optional[str] = None,
     ) -> Dict:
         """Parse code → AST (syntax tree). Auto-detects language."""
         return parse_code_to_ast(code, language, filename)
 
     @mcp_server.tool()
     def generate_asg(
-        code: str, language: Optional[str] = None, filename: Optional[str] = None
+        code: str,
+        language: Optional[str] = None,
+        filename: Optional[str] = None,
     ) -> Dict:
         """Parse code → AST → ASG (nodes + edges with semantic relationships)."""
         ast_data = parse_code_to_ast(code, language, filename)
@@ -616,14 +620,16 @@ def register_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def analyze_code(
-        code: str, language: Optional[str] = None, filename: Optional[str] = None
+        code: str,
+        language: Optional[str] = None,
+        filename: Optional[str] = None,
     ) -> Dict:
         """Extract functions, classes, imports, complexity metrics from code."""
         return analyze_code_structure(code, language, filename)
 
-    @mcp_server.tool()
-    def supported_languages() -> List[str]:
-        """List available language parsers (e.g., python, javascript)."""
-        if not languages and not init_parsers():
-            return []
-        return list(languages.keys())
+
+def get_supported_languages() -> List[str]:
+    """Get list of supported languages (CLI utility, not an MCP tool)."""
+    if not languages and not init_parsers():
+        return []
+    return list(languages.keys())

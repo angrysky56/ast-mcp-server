@@ -1,7 +1,7 @@
 """
 USS MCP Tools - Universal Semantic Structure tool registration.
 
-Provides MCP tools for semantic search, graph queries, and traversal.
+Provides semantic search and graph query tools.
 """
 
 from typing import Any, Dict, List, Optional
@@ -16,37 +16,9 @@ except ImportError:
     USS_CORE_AVAILABLE = False
     CHROMADB_AVAILABLE = False
 
-try:
-    import ast_mcp_server.embeddings  # noqa: F401
-
-    EMBEDDINGS_AVAILABLE = True
-except (ImportError, ValueError):
-    EMBEDDINGS_AVAILABLE = False
-
-try:
-    import ast_mcp_server.server_llm  # noqa: F401
-
-    SERVER_LLM_AVAILABLE = True
-except (ImportError, ValueError):
-    SERVER_LLM_AVAILABLE = False
-
 
 def register_uss_tools(mcp_server: Any) -> None:
     """Register USS tools with the MCP server."""
-
-    @mcp_server.tool()
-    def uss_status() -> Dict[str, Any]:
-        """Check USS (Universal Semantic Structure) component availability.
-
-        Returns status of embeddings, vector store, and server LLM.
-        """
-        return {
-            "uss_core": USS_CORE_AVAILABLE,
-            "chromadb": CHROMADB_AVAILABLE,
-            "embeddings": EMBEDDINGS_AVAILABLE,
-            "server_llm": SERVER_LLM_AVAILABLE,
-            "message": "USS components status. Set OPENROUTER_API_KEY for full functionality.",
-        }
 
     if not USS_CORE_AVAILABLE:
         return
@@ -65,7 +37,6 @@ def register_uss_tools(mcp_server: Any) -> None:
             }
 
         store = get_vector_store()
-
         filters = {}
         if node_type:
             filters["type"] = node_type
@@ -83,96 +54,92 @@ def register_uss_tools(mcp_server: Any) -> None:
         }
 
     @mcp_server.tool()
-    def get_graph_node(
-        node_id: str,
-        include_edges: bool = True,
-        graph_path: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """Get full node details from a saved graph. Optionally include edges."""
-        if not graph_path:
-            return {"error": "graph_path is required"}
-
-        try:
-            graph = UniversalGraph.load_json(graph_path)
-        except Exception as e:
-            return {"error": f"Failed to load graph: {e}"}
-
-        node = graph.get_node(node_id)
-        if not node:
-            return {"error": f"Node {node_id} not found"}
-
-        result = node.to_dict()
-
-        if include_edges:
-            result["edges"] = [e.to_dict() for e in graph.get_edges_for(node_id)]
-
-        return result
-
-    @mcp_server.tool()
-    def traverse_graph(
-        start_id: str,
-        edge_types: List[str],
-        depth: int = 3,
-        graph_path: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """Traverse graph from start node following specified edge types."""
-        if not graph_path:
-            return {"error": "graph_path is required"}
-
-        try:
-            graph = UniversalGraph.load_json(graph_path)
-        except Exception as e:
-            return {"error": f"Failed to load graph: {e}"}
-
-        paths = graph.traverse(start_id, edge_types, depth)
-
-        return {
-            "start": start_id,
-            "edge_types": edge_types,
-            "depth": depth,
-            "path_count": len(paths),
-            "paths": [
-                [{"id": n.id, "type": n.type, "preview": n.preview(50)} for n in path]
-                for path in paths
-            ],
-        }
-
-    @mcp_server.tool()
     def query_graph(
+        graph_path: str,
+        mode: str = "summary",
+        node_id: Optional[str] = None,
         node_type: Optional[str] = None,
-        edge_type: Optional[str] = None,
-        graph_path: Optional[str] = None,
+        edge_types: Optional[List[str]] = None,
+        depth: int = 3,
     ) -> Dict[str, Any]:
-        """Query nodes from saved graph by type/relationships. Returns matching nodes."""
-        if not graph_path:
-            return {"error": "graph_path is required"}
+        """Query nodes from saved graph by type/relationships. Returns matching nodes.
 
+        Modes: summary, node, traverse, query
+        - summary: Get node/edge counts and type distributions
+        - node: Get full details for node_id (include connected edges)
+        - traverse: Follow edge_types from node_id up to depth
+        - query: Filter nodes by node_type
+        """
         try:
             graph = UniversalGraph.load_json(graph_path)
         except Exception as e:
             return {"error": f"Failed to load graph: {e}"}
 
-        nodes = graph.query(node_type=node_type, edge_type=edge_type)
+        if mode == "summary":
+            return graph.get_summary()
 
-        return {
-            "node_type": node_type,
-            "edge_type": edge_type,
-            "count": len(nodes),
-            "nodes": [
-                {"id": n.id, "type": n.type, "preview": n.preview(100)}
-                for n in nodes[:50]  # Limit to avoid huge responses
-            ],
-        }
+        if mode == "node":
+            if not node_id:
+                return {"error": "node_id required for mode='node'"}
+            node = graph.get_node(node_id)
+            if not node:
+                return {"error": f"Node {node_id} not found"}
+            result = node.to_dict()
+            result["edges"] = [e.to_dict() for e in graph.get_edges_for(node_id)]
+            return result
 
-    @mcp_server.tool()
-    def graph_summary(graph_path: Optional[str] = None) -> Dict[str, Any]:
-        """Get node/edge counts and type distributions from saved graph."""
-        if not graph_path:
-            return {"error": "graph_path is required"}
+        if mode == "traverse":
+            if not node_id or not edge_types:
+                return {"error": "node_id and edge_types required for mode='traverse'"}
+            paths = graph.traverse(node_id, edge_types, depth)
+            return {
+                "start": node_id,
+                "edge_types": edge_types,
+                "depth": depth,
+                "path_count": len(paths),
+                "paths": [
+                    [
+                        {"id": n.id, "type": n.type, "preview": n.preview(50)}
+                        for n in path
+                    ]
+                    for path in paths
+                ],
+            }
 
-        try:
-            graph = UniversalGraph.load_json(graph_path)
-        except Exception as e:
-            return {"error": f"Failed to load graph: {e}"}
+        if mode == "query":
+            nodes = graph.query(node_type=node_type)
+            return {
+                "node_type": node_type,
+                "count": len(nodes),
+                "nodes": [
+                    {"id": n.id, "type": n.type, "preview": n.preview(100)}
+                    for n in nodes[:50]
+                ],
+            }
 
-        return graph.get_summary()
+        return {"error": f"Unknown mode: {mode}. Use: summary, node, traverse, query"}
+
+
+# CLI utility (not an MCP tool)
+def check_uss_status() -> Dict[str, Any]:
+    """Check USS component availability (CLI utility)."""
+    try:
+        import ast_mcp_server.embeddings  # noqa: F401
+
+        embeddings_available = True
+    except (ImportError, ValueError):
+        embeddings_available = False
+
+    try:
+        import ast_mcp_server.server_llm  # noqa: F401
+
+        server_llm_available = True
+    except (ImportError, ValueError):
+        server_llm_available = False
+
+    return {
+        "uss_core": USS_CORE_AVAILABLE,
+        "chromadb": CHROMADB_AVAILABLE,
+        "embeddings": embeddings_available,
+        "server_llm": server_llm_available,
+    }

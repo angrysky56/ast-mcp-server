@@ -1,2 +1,0 @@
-Tree-sitter language parsers are available.
-LANGUAGES: python, javascript, typescript, go, rust, c, cpp, java
