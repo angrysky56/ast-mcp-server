@@ -93,6 +93,22 @@ if USS_TOOLS_AVAILABLE and register_uss_tools is not None:
 if NEO4J_TOOLS_AVAILABLE and register_neo4j_tools is not None:
     register_neo4j_tools(mcp)
 
+# Import USS Agent tools
+register_uss_agent_tools: Optional[Callable[[Any], None]] = None
+try:
+    from ast_mcp_server.uss_agent_tools import (
+        register_uss_agent_tools as _register_uss_agent_tools,
+    )
+
+    register_uss_agent_tools = _register_uss_agent_tools
+    USS_AGENT_AVAILABLE = True
+except ImportError:
+    USS_AGENT_AVAILABLE = False
+
+# Register USS Agent tools if available
+if USS_AGENT_AVAILABLE and register_uss_agent_tools is not None:
+    register_uss_agent_tools(mcp)
+
 # Register resources with the server
 register_resources(mcp)
 
@@ -626,6 +642,12 @@ def main() -> None:
         print("  - Cypher query execution")
     else:
         print("Neo4j tools not available. Install neo4j package.")
+
+    # Report on USS Agent availability
+    if USS_AGENT_AVAILABLE:
+        print("USS Agent is available.")
+        print("  - Natural language queries to both databases")
+        print("  - Intelligent curation of code knowledge")
 
     # Start the MCP server
     print("Starting AST/ASG Code Analysis MCP Server v0.3.0...")
