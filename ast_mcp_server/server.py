@@ -236,25 +236,29 @@ if ENHANCED_TOOLS_AVAILABLE:
 
 def main() -> None:
     """Main entry point for the AST MCP Server."""
-    print("Starting AST/ASG Code Analysis MCP Server...")
+    import sys
+
+    # CRITICAL: All startup messages must go to stderr to avoid corrupting
+    # the MCP JSONRPC protocol on stdout
+    print("Starting AST/ASG Code Analysis MCP Server...", file=sys.stderr)
 
     from ast_mcp_server.tools import init_parsers
 
     if not init_parsers():
-        print("WARNING: Tree-sitter parsers not found. Run 'uv run build-parsers'.")
+        print("WARNING: Tree-sitter parsers not found. Run 'uv run build-parsers'.", file=sys.stderr)
     else:
-        print("✓ Tree-sitter parsers initialized")
+        print("✓ Tree-sitter parsers initialized", file=sys.stderr)
 
     if ENHANCED_TOOLS_AVAILABLE:
-        print("✓ Enhanced tools (incremental parsing, diff)")
+        print("✓ Enhanced tools (incremental parsing, diff)", file=sys.stderr)
     if TRANSFORMATION_TOOLS_AVAILABLE:
-        print("✓ Transformation tools (ast-grep)")
+        print("✓ Transformation tools (ast-grep)", file=sys.stderr)
     if NEO4J_TOOLS_AVAILABLE:
-        print("✓ Neo4j integration")
+        print("✓ Neo4j integration", file=sys.stderr)
     if USS_AGENT_AVAILABLE:
-        print("✓ USS Agent (natural language queries)")
+        print("✓ USS Agent (natural language queries)", file=sys.stderr)
 
-    print("\nRunning MCP server...")
+    print("\nRunning MCP server...", file=sys.stderr)
     mcp.run()
 
 

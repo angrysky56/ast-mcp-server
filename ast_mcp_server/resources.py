@@ -8,6 +8,7 @@ through the Model Context Protocol.
 import hashlib
 import json
 import os
+import sys
 import tempfile
 from typing import Any, Dict, Optional, cast
 
@@ -37,7 +38,7 @@ def cache_resource(code: str, resource_type: str, data: Dict[str, Any]) -> None:
         with open(cache_path, "w") as f:
             json.dump(data, f)
     except Exception as e:
-        print(f"Error caching resource: {e}")
+        print(f"Error caching resource: {e}", file=sys.stderr)
 
 
 def get_cached_resource(code: str, resource_type: str) -> Optional[Dict[str, Any]]:
@@ -50,7 +51,7 @@ def get_cached_resource(code: str, resource_type: str) -> Optional[Dict[str, Any
             with open(cache_path, "r") as f:
                 return cast(Dict[str, Any], json.load(f))
         except Exception as e:
-            print(f"Error reading cached resource: {e}")
+            print(f"Error reading cached resource: {e}", file=sys.stderr)
 
     return None
 

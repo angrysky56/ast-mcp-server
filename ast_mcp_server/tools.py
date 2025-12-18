@@ -50,6 +50,8 @@ def init_parsers() -> bool:
     Returns:
         True if at least one parser was initialized, False otherwise.
     """
+    import sys
+
     global languages
 
     # Check if parsers are marked as available
@@ -66,21 +68,23 @@ def init_parsers() -> bool:
                 available_languages.append(lang_name)
             except ImportError:
                 print(
-                    f"Module {module_name} not found. Some language support may be limited."
+                    f"Module {module_name} not found. Some language support may be limited.",
+                    file=sys.stderr
                 )
             except Exception as e:
-                print(f"Error initializing {lang_name} language: {e}")
+                print(f"Error initializing {lang_name} language: {e}", file=sys.stderr)
 
         if available_languages:
             print(
-                f"Successfully initialized parsers for: {', '.join(available_languages)}"
+                f"Successfully initialized parsers for: {', '.join(available_languages)}",
+                file=sys.stderr
             )
             return True
         else:
             return False
 
     except Exception as e:
-        print(f"Error initializing parsers: {e}")
+        print(f"Error initializing parsers: {e}", file=sys.stderr)
         return False
 
 

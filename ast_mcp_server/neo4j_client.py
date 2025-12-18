@@ -9,6 +9,7 @@ Uses batch insertion (UNWIND) for performance.
 
 import hashlib
 import os
+import sys
 from typing import Any, Dict, List, Optional
 
 # Try to import Neo4j driver
@@ -37,12 +38,12 @@ class Neo4jClient:
                 self.driver = GraphDatabase.driver(
                     self.uri, auth=(self.user, self.password)
                 )
-                print(f"Initialized Neo4j driver for {self.uri}")
+                print(f"Initialized Neo4j driver for {self.uri}", file=sys.stderr)
             except Exception as e:
-                print(f"Failed to initialize Neo4j driver: {e}")
+                print(f"Failed to initialize Neo4j driver: {e}", file=sys.stderr)
                 self.driver = None
         else:
-            print("Neo4j driver not available. Install with 'uv add neo4j'")
+            print("Neo4j driver not available. Install with 'uv add neo4j'", file=sys.stderr)
 
     def close(self) -> None:
         """Close the Neo4j connection."""
