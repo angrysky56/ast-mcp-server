@@ -112,6 +112,40 @@ class LRUCache(OrderedDict[str, Dict[str, Any]]):
 AST_CACHE: LRUCache = LRUCache(MAX_AST_CACHE_SIZE)
 
 
+def cached_parse_to_ast(
+    code: str,
+    language: Optional[str] = None,
+    filename: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Parse code to AST with LRU caching.
+
+    Avoids re-parsing identical code. Cache key is MD5 hash of code + language.
+    """
+    import hashlib
+
+    from ast_mcp_server.tools import detect_language, parse_code_to_ast
+
+    # Detect language for consistent cache keys
+    if not language:
+        language = detect_language(code, filename)
+
+    cache_key = hashlib.md5(
+        f"{code}:{language}".encode(), usedforsecurity=False
+    ).hexdigest()
+
+    # Check cache first
+    cached = AST_CACHE.get_with_touch(cache_key)
+    if cached is not None:
+        return cached
+
+    # Parse and cache
+    result = parse_code_to_ast(code, language, filename)
+    if "error" not in result:
+        AST_CACHE[cache_key] = result
+
+    return result
+
+
 # ============================================================================
 # analyze_project: Unique tool - saves analysis to files with optional AI summary
 # ============================================================================
@@ -128,10 +162,10 @@ def analyze_project(
     from ast_mcp_server.tools import (
         analyze_code_structure,
         create_asg_from_ast,
-        parse_code_to_ast,
     )
 
-    ast_data = parse_code_to_ast(code, language, filename)
+    # Use cached parsing to avoid re-parsing identical code
+    ast_data = cached_parse_to_ast(code, language, filename)
     if "error" in ast_data:
         return ast_data
 
@@ -245,7 +279,10 @@ def main() -> None:
     from ast_mcp_server.tools import init_parsers
 
     if not init_parsers():
-        print("WARNING: Tree-sitter parsers not found. Run 'uv run build-parsers'.", file=sys.stderr)
+        print(
+            "WARNING: Tree-sitter parsers not found. Run 'uv run build-parsers'.",
+            file=sys.stderr,
+        )
     else:
         print("✓ Tree-sitter parsers initialized", file=sys.stderr)
 

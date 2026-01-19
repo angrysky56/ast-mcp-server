@@ -266,8 +266,23 @@ Provide a clear, helpful answer.
         return results
 
     def query_sync(self, user_query: str) -> Dict[str, Any]:
-        """Synchronous wrapper for query()."""
-        return asyncio.run(self.query(user_query))
+        """Synchronous wrapper for query().
+
+        Handles being called from both sync and async contexts (e.g., MCP server).
+        """
+        try:
+            # Check if we're already in an async context
+            asyncio.get_running_loop()  # Just check, don't need the reference
+        except RuntimeError:
+            # No running loop - safe to use asyncio.run
+            return asyncio.run(self.query(user_query))
+
+        # Already in async context - run in thread pool to avoid blocking
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            future = pool.submit(asyncio.run, self.query(user_query))
+            return future.result(timeout=120)
 
     async def execute_cypher(self, cypher: str) -> Dict[str, Any]:
         """Execute a raw Cypher query."""
