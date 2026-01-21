@@ -74,7 +74,7 @@ Changelog = "https://github.com/angrysky56/ast-mcp-server/blob/main/CHANGELOG.md
 
 [project.scripts]
 ast-mcp-server = "server:main"
-build-parsers = "build_parsers:main"
+build-parsers = "ast_mcp_server.build_parsers:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ast_mcp_server"]
@@ -83,7 +83,7 @@ packages = ["ast_mcp_server"]
 include = [
   "/ast_mcp_server",
   "/server.py",
-  "/build_parsers.py",
+
   "/README.md",
   "/LICENSE",
   "/pyproject.toml",
