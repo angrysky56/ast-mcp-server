@@ -9,7 +9,7 @@ from typing import Any, Dict
 
 
 def ask_uss_agent(query: str) -> Dict[str, Any]:
-    """Natural language query to USS. Agent picks Neo4j/ChromaDB, runs query, returns {decision, results, summary}."""
+    """Graph Query: Ask natural language questions about the codebase (uses Neo4j/ChromaDB)."""
     from ast_mcp_server.uss_agent import get_uss_agent
 
     try:
@@ -20,7 +20,7 @@ def ask_uss_agent(query: str) -> Dict[str, Any]:
 
 
 def uss_agent_status() -> Dict[str, Any]:
-    """Check USS Agent status: Neo4j connected?, ChromaDB available?, LLM model."""
+    """Check status of the USS Agent services (Neo4j, ChromaDB, LLM)."""
     from ast_mcp_server.uss_agent import get_uss_agent
 
     try:

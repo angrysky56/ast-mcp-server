@@ -890,7 +890,7 @@ def register_enhanced_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Parse code → AST with incremental support. Faster for small changes to large files."""
+        """Step 1 (Enhanced): Incremental parsing. Use this instead of `parse_to_ast` for large files or edits."""
         previous_tree = None
         if old_code:
             old_result = parse_code_to_ast_incremental(
@@ -908,7 +908,7 @@ def register_enhanced_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Parse code → enhanced ASG with scope, control flow, and data flow edges."""
+        """Step 3 (Enhanced): Deep semantic analysis (Scope, Data Flow). Use for refactoring or complex queries."""
         ast_data = parse_code_to_ast_incremental(
             code, old_code=None, language=language, filename=filename
         )
@@ -921,7 +921,7 @@ def register_enhanced_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Compare old/new code versions. Returns only changed AST nodes."""
+        """Compare two code versions semantically. Returns AST differences (nodes added/removed/changed)."""
         ast_old = parse_code_to_ast_incremental(
             old_code, language=language, filename=filename, include_tree=True
         )
@@ -942,7 +942,7 @@ def register_enhanced_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Find AST node at cursor position (0-based line/column)."""
+        """Interactive: Get AST node at a specific cursor line/column. Use for cursor-based context."""
         ast_data = parse_code_to_ast_incremental(
             code, language=language, filename=filename
         )

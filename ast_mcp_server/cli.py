@@ -163,7 +163,7 @@ def test_pattern(
 
 
 @app.command()
-def analyze_project(
+def analyze_file(
     filename: str = typer.Option(..., "--filename", "-f", help="File to analyze"),
     project_name: str = typer.Option(
         ..., "--project-name", "-n", help="Name of the project output"
@@ -172,34 +172,52 @@ def analyze_project(
         None, "--lang", "-l", help="Language override"
     ),
 ) -> None:
-    """Analyze a project file and save results to disk."""
+    """Analyze a single source file and save results to disk."""
     try:
-        from ast_mcp_server.server import analyze_project as analyze_tool
+        from ast_mcp_server.server import analyze_source_file as analyze_tool
 
         console.print(f"[blue]Analyzing {filename} as project {project_name}...[/blue]")
 
-        # Call the server function directly
-        # It accepts optional code, filename, project_name
         result = analyze_tool(
-            project_name=project_name,
-            filename=filename,
-            language=language,
-            code=None,  # Let it read from file
-            include_summary=True,
+            project_name=project_name, filename=filename, language=language
         )
-
-        if "error" in result:
-            console.print(f"❌ [red]Analysis failed:[/red] {result['error']}")
-        else:
-            console.print("✅ [green]Analysis complete![/green]")
-            console.print(f"Output folder: {result.get('output_folder')}")
-            if "summary" in result:
-                console.print(
-                    Panel(result["summary"], title="AI Summary", border_style="cyan")
-                )
+        console.print("[green]Analysis complete![/green]")
+        console.print(result)
 
     except Exception as e:
-        console.print(f"❌ [red]Error:[/red] {e}")
+        console.print(f"❌ [red]Analysis failed:[/red] {e}")
+
+
+@app.command()
+def analyze_project(
+    path: str = typer.Option(..., "--path", "-p", help="Directory to analyze"),
+    project_name: str = typer.Option(
+        ..., "--project-name", "-n", help="Name of the project output"
+    ),
+    sync: bool = typer.Option(True, "--sync/--no-sync", help="Sync to Graph DB"),
+) -> None:
+    """Recursively analyze a project directory."""
+    try:
+        from ast_mcp_server.server import analyze_project as analyze_tool
+
+        console.print(f"[blue]Analyzing project at {path}...[/blue]")
+
+        result = analyze_tool(
+            project_path=path, project_name=project_name, sync_to_db=sync
+        )
+
+        console.print("[green]Project Analysis Complete![/green]")
+        console.print(f"Processed: {result.get('processed_files', 0)}")
+        console.print(f"Synced: {result.get('synced_files', 0)}")
+        console.print(f"Failed: {result.get('failed_files', 0)}")
+
+        if result.get("failures"):
+            console.print("[red]Failures:[/red]")
+            for f in result["failures"]:
+                console.print(f"  {f['file']}: {f['error']}")
+
+    except Exception as e:
+        console.print(f"❌ [red]Project analysis failed:[/red] {e}")
 
 
 if __name__ == "__main__":

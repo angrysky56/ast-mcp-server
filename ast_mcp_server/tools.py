@@ -741,7 +741,7 @@ def register_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict:
-        """Parse code → AST (syntax tree). Auto-detects language."""
+        """Step 1: Parse code → AST (syntax tree). Use this to validate syntax or get a raw tree dump."""
         return parse_code_to_ast(code, language, filename)
 
     @mcp_server.tool()
@@ -750,7 +750,7 @@ def register_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict:
-        """Parse code → AST → ASG (nodes + edges with semantic relationships)."""
+        """Step 3: Parse code → AST → ASG (graph). Use this to explore basic relationships (edges) between nodes."""
         ast_data = parse_code_to_ast(code, language, filename)
         return create_asg_from_ast(ast_data)
 
@@ -760,7 +760,7 @@ def register_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict:
-        """Extract functions, classes, imports, complexity metrics from code."""
+        """Step 2: Extract metadata (Functions, Classes, Imports). Use this for high-level file summaries."""
         return analyze_code_structure(code, language, filename)
 
 

@@ -9,7 +9,7 @@ Includes enhanced features for scope handling, incremental parsing, and Neo4j in
 import json
 import os
 from collections import OrderedDict
-from typing import Any, Callable, Dict, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from mcp.server.fastmcp import FastMCP
 
@@ -156,14 +156,14 @@ def cached_parse_to_ast(
 # analyze_project: Unique tool - saves analysis to files with optional AI summary
 # ============================================================================
 @mcp.tool()
-def analyze_project(
+def analyze_source_file(
     project_name: str,
     code: Optional[str] = None,
     language: Optional[str] = None,
     filename: Optional[str] = None,
     include_summary: bool = True,
 ) -> Dict[str, Any]:
-    """Save full analysis to files (functions.json, classes.json, etc). Returns file paths, not data."""
+    """Analyze a single source file, save reports to disk, and optionally generate an AI summary."""
     from ast_mcp_server.output_manager import get_output_manager
     from ast_mcp_server.tools import (
         analyze_code_structure,
@@ -193,15 +193,7 @@ def analyze_project(
 
             llm = get_server_llm()
             structure_data = analysis_data.get("structure")
-            func_count = (
-                len(structure_data.get("functions", [])) if structure_data else 0
-            )
-            class_count = (
-                len(structure_data.get("classes", [])) if structure_data else 0
-            )
-            import_count = (
-                len(structure_data.get("imports", [])) if structure_data else 0
-            )
+            # func_count, class_count, import_count replaced by detailed lists below
 
             # Ensure we have code for preview
             preview_code = code
@@ -212,22 +204,57 @@ def analyze_project(
                 except Exception:
                     preview_code = ""
 
-            preview_text = preview_code[:500] if preview_code else ""
+            # Increase limit significantly (Claude Haiku has 200k context, 15k chars is safe)
+            preview_text = preview_code[:15000] if preview_code else ""
 
-            prompt = f"""Summarize this code analysis in 2-3 sentences:
+            # Extract detailed metadata
+            func_names = (
+                [f["name"] for f in structure_data.get("functions", [])]
+                if structure_data
+                else []
+            )
+            class_names = (
+                [c["name"] for c in structure_data.get("classes", [])]
+                if structure_data
+                else []
+            )
 
-Project: {project_name}
-Language: {ast_data.get("language", "unknown")}
-Functions: {func_count}
-Classes: {class_count}
-Imports: {import_count}
+            # Extract relationships from ASG
+            edges = asg_data.get("edges", []) if asg_data else []
+            relationships = []
+            for edge in edges:
+                e_type = edge.get("type")
+                if e_type in ["calls", "imports", "inherits", "calls_import"]:
+                    relationships.append(str(e_type))
 
-Code preview (first 500 chars):
+            # Count relationship types
+            rel_counts: dict[str, int] = {}
+            for r in relationships:
+                rel_counts[r] = rel_counts.get(r, 0) + 1
+
+            rel_summary = ", ".join([f"{k}: {v}" for k, v in rel_counts.items()])
+
+            prompt = f"""Summarize this code file and its role in the project.
+
+Metadata:
+- Project: {project_name}
+- File: {filename if filename else 'unknown'}
+- Language: {ast_data.get("language", "unknown")}
+- Classes: {", ".join(class_names) if class_names else "None"}
+- Functions: {", ".join(func_names[:50])} {'...' if len(func_names)>50 else ''}
+- Relationships detected: {rel_summary if rel_summary else "None detected"}
+
+Code Content:
 {preview_text}
 
-Provide a concise summary of what this code does."""
+Instructions:
+1. Describe the main responsibility of this code.
+2. List the key components (classes/functions) and what they do.
+3. specific connections to other scripts or libraries based on imports and logic detected.
+4. Provide a "Graph Insight" section describing how this file connects to the rest of the system.
+"""
 
-            ai_summary = llm.chat_sync(prompt, max_tokens=200)
+            ai_summary = llm.chat_sync(prompt, max_tokens=1000)
 
             from pathlib import Path
 
@@ -283,6 +310,101 @@ if ENHANCED_TOOLS_AVAILABLE:
         return {
             "error": "Enhanced ASG not found. Use generate_enhanced_asg tool first."
         }
+
+
+@mcp.tool()
+def analyze_project(
+    project_path: str,
+    project_name: str,
+    file_extensions: Optional[List[str]] = None,
+    sync_to_db: bool = True,
+    include_summary: bool = True,
+) -> Dict[str, Any]:
+    """Recursively analyze a project, generate reports, and optionaly sync to Graph DB.
+
+    Args:
+        project_path: Root directory to analyze
+        project_name: Name of the project (for output grouping)
+        file_extensions: List of extensions to include (default: .py, .js, .ts, .tsx, .go)
+        sync_to_db: Whether to sync nodes/edges to Neo4j (default: True)
+        include_summary: Whether to generate AI summaries for each file (default: True)
+    """
+    import os
+
+    # We call the functions directly.
+    # Note: analyze_source_file is defined in this module, so we can call it.
+    # sync_file_to_graph is in neo4j_tools.
+    from ast_mcp_server.neo4j_tools import sync_file_to_graph
+
+    if file_extensions is None:
+        file_extensions = [".py", ".js", ".ts", ".tsx", ".go"]
+
+    processed_count = 0
+    failed_count = 0
+    synced_count = 0
+    failures = []
+
+    if not os.path.exists(project_path):
+        return {"error": f"Project path {project_path} does not exist"}
+
+    # Walk directory
+    for root, dirs, files in os.walk(project_path):
+        # Skip ignores
+        dirs[:] = [
+            d
+            for d in dirs
+            if d
+            not in [
+                ".git",
+                "node_modules",
+                "venv",
+                "__pycache__",
+                ".ipynb_checkpoints",
+                "analyzed_projects",
+            ]
+        ]
+
+        for file in files:
+            ext = os.path.splitext(file)[1]
+            if ext not in file_extensions:
+                continue
+
+            full_path = os.path.join(root, file)
+            try:
+                # Read code once
+                with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+                    code_content = f.read()
+
+                # 1. Analyze (Local JSON + Summary)
+                analyze_source_file(
+                    project_name=project_name,
+                    code=code_content,
+                    filename=full_path,
+                    include_summary=include_summary,
+                )
+                processed_count += 1
+
+                # 2. Sync to DB
+                if sync_to_db:
+                    sync_res = sync_file_to_graph(
+                        code=code_content, file_path=full_path
+                    )
+                    if "error" not in sync_res:
+                        synced_count += 1
+                    else:
+                        # Log sync error but don't count as full failure if analysis worked?
+                        pass
+
+            except Exception as e:
+                failed_count += 1
+                failures.append({"file": full_path, "error": str(e)})
+
+    return {
+        "processed_files": processed_count,
+        "failed_files": failed_count,
+        "synced_files": synced_count,
+        "failures": failures,
+    }
 
 
 def main() -> None:
