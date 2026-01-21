@@ -6,6 +6,7 @@ with better scope handling, more complete edge detection, and performance
 optimizations for handling large codebases.
 """
 
+import os
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, TypedDict
 
@@ -33,6 +34,31 @@ PYTHON_SCOPE_NODES = {
     "for_statement",
     "while_statement",
     "with_statement",
+}
+
+# Types of control flow nodes in JavaScript/TypeScript
+JS_CONTROL_FLOW_NODES = {
+    "if_statement",
+    "for_statement",
+    "for_in_statement",
+    "while_statement",
+    "do_statement",
+    "switch_statement",
+    "try_statement",
+    "catch_clause",
+    "finally_clause",
+}
+
+# Types of nodes that create new scopes in JavaScript/TypeScript
+JS_SCOPE_NODES = {
+    "function_declaration",
+    "function_expression",
+    "arrow_function",
+    "method_definition",
+    "class_declaration",
+    "class_expression",
+    # Block scoping for let/const (simplified: treat all blocks as scopes for safety)
+    "statement_block",
 }
 
 
@@ -153,12 +179,13 @@ class ScopeManager:
 
 
 def parse_code_to_ast_incremental(
-    code: str,
+    code: Optional[str] = None,
     language: Optional[str] = None,
     filename: Optional[str] = None,
     previous_tree: Optional[Tree] = None,
     old_code: Optional[str] = None,
     include_children: bool = True,
+    include_tree: bool = False,
 ) -> Dict[str, Any]:
     """
     Parse code into an AST incrementally using Tree-sitter.
@@ -185,6 +212,17 @@ def parse_code_to_ast_incremental(
             "error": "Tree-sitter language parsers not available. Run build_parsers.py first."
         }
 
+    # Read from file if code is not provided
+    if code is None:
+        if filename and os.path.exists(filename):
+            try:
+                with open(filename, "r", encoding="utf-8") as f:
+                    code = f.read()
+            except Exception as e:
+                return {"error": f"Error reading file {filename}: {e}"}
+        else:
+            return {"error": "Code content or valid filename must be provided"}
+
     # Detect language if not provided
     if not language:
         language = detect_language(code, filename)
@@ -201,6 +239,10 @@ def parse_code_to_ast_incremental(
         parser.language = languages[language]
 
         # Parse the code, potentially incrementally
+        # Ensure code is string (handled by check above)
+        if code is None:
+            code = ""  # Should not happen due to check above, satisfies type checker
+
         source_bytes = bytes(code, "utf-8")
 
         if previous_tree and old_code:
@@ -237,6 +279,9 @@ def parse_code_to_ast_incremental(
             "language": language,
             "ast": ast,
         }
+
+        if include_tree:
+            result["tree_object"] = tree
 
         if changed_ranges:
             result["changed_ranges"] = changed_ranges
@@ -545,10 +590,170 @@ def add_enhanced_js_ts_semantic_edges(ast: Dict, edges: List[Dict]) -> None:
         ast: The JS/TS AST
         edges: List to store the detected edges
     """
-    # This would contain JS/TS-specific scope and edge analysis
-    # Similar implementation as the Python version but adapted for JS/TS
-    # Since this is a more advanced implementation, we're keeping it as a placeholder
-    pass
+    scope_manager = ScopeManager()
+    current_scope = scope_manager.global_scope
+
+    # First pass: find all definitions
+    def find_enhanced_definitions(
+        node: Dict[str, Any], scope: Optional[str] = None
+    ) -> None:
+        nonlocal current_scope
+        old_scope = current_scope
+        node_id = f"{node['type']}_{node['start_byte']}_{node['end_byte']}"
+
+        # Check for scope-creating nodes
+        if node["type"] in JS_SCOPE_NODES:
+            current_scope = scope_manager.enter_scope(node_id, current_scope)
+
+        # Process definitions
+        if node["type"] in ["function_declaration", "generator_function_declaration"]:
+            for child in node.get("children", []):
+                if child["type"] == "identifier":
+                    func_name = child["text"]
+                    func_id = node_id
+                    scope_manager.add_function(func_name, func_id)
+
+                    # Add parameters
+                    for sib in node.get("children", []):
+                        if sib["type"] == "formal_parameters":
+                            for param in sib.get("children", []):
+                                if param["type"] == "identifier":
+                                    param_name = param["text"]
+                                    param_id = f"{param['type']}_{param['start_byte']}_{param['end_byte']}"
+                                    scope_manager.add_variable(
+                                        param_name, param_id, current_scope
+                                    )
+                    break
+
+        elif node["type"] == "class_declaration":
+            for child in node.get("children", []):
+                if child["type"] == "identifier":
+                    class_name = child["text"]
+                    class_id = node_id
+                    scope_manager.add_class(class_name, class_id)
+                    break
+
+        elif node["type"] == "variable_declarator":
+            # var/let/const name = value
+            for child in node.get("children", []):
+                if child["type"] == "identifier":
+                    var_name = child["text"]
+                    var_id = (
+                        f"{child['type']}_{child['start_byte']}_{child['end_byte']}"
+                    )
+                    scope_manager.add_variable(var_name, var_id, current_scope)
+                    break
+
+        elif node["type"] == "import_specifier":
+            # import { name } from ...
+            for child in node.get("children", []):
+                if child["type"] == "identifier":
+                    import_name = child["text"]
+                    import_id = (
+                        f"{child['type']}_{child['start_byte']}_{child['end_byte']}"
+                    )
+                    scope_manager.add_import(import_name, import_id)
+                    # Assuming last identifier is the local name if aliased
+
+        elif node["type"] == "import_clause":
+            # import name from ... (default import)
+            for child in node.get("children", []):
+                if child["type"] == "identifier":
+                    import_name = child["text"]
+                    import_id = (
+                        f"{child['type']}_{child['start_byte']}_{child['end_byte']}"
+                    )
+                    scope_manager.add_import(import_name, import_id)
+
+        # Control flow
+        if node["type"] in JS_CONTROL_FLOW_NODES:
+            scope_manager.enter_control_flow(node_id)
+
+            # Simple control flow edge to body/consequent
+            for child in node.get("children", []):
+                if child["type"] in ["statement_block", "block"]:
+                    body_id = (
+                        f"{child['type']}_{child['start_byte']}_{child['end_byte']}"
+                    )
+                    edges.append(
+                        {"source": node_id, "target": body_id, "type": "control_flow"}
+                    )
+
+        # Recurse
+        for child in node.get("children", []):
+            find_enhanced_definitions(child, current_scope)
+
+        # Exit control flow
+        if node["type"] in JS_CONTROL_FLOW_NODES:
+            scope_manager.exit_control_flow()
+
+        # Restore scope
+        if node["type"] in JS_SCOPE_NODES:
+            current_scope = old_scope
+
+    # Second pass: references
+    def find_enhanced_references(
+        node: Dict[str, Any], scope: Optional[str] = None
+    ) -> None:
+        nonlocal current_scope
+        old_scope = current_scope
+        node_id = f"{node['type']}_{node['start_byte']}_{node['end_byte']}"
+
+        if node["type"] in JS_SCOPE_NODES:
+            current_scope = node_id
+
+        if node["type"] == "call_expression":
+            # myFunc()
+            # First child is usually the identifier or member expression
+            callee = None
+            if node.get("children"):
+                callee = node["children"][0]
+
+            if callee and callee["type"] == "identifier":
+                func_name = callee["text"]
+                caller_id = (
+                    f"{callee['type']}_{callee['start_byte']}_{callee['end_byte']}"
+                )
+
+                func_id = scope_manager.find_function(func_name)
+                if func_id:
+                    edges.append(
+                        {"source": caller_id, "target": func_id, "type": "calls"}
+                    )
+
+                import_id = scope_manager.find_import(func_name)
+                if import_id:
+                    edges.append(
+                        {
+                            "source": caller_id,
+                            "target": import_id,
+                            "type": "calls_import",
+                        }
+                    )
+
+        elif node["type"] == "identifier":
+            # Variable reference?
+            # Filter out declaration contexts
+            # This check is tricky without parent pointers in the dict, but we can infer
+            # or rely on the fact that declarations were handled in pass 1.
+            # A robust implementation checks definition vs usage contexts.
+
+            var_name = node["text"]
+            var_id = node_id
+
+            ref_id = scope_manager.find_variable(var_name, current_scope)
+            if ref_id and ref_id != var_id:
+                edges.append({"source": var_id, "target": ref_id, "type": "references"})
+
+        # Recurse
+        for child in node.get("children", []):
+            find_enhanced_references(child, current_scope)
+
+        if node["type"] in JS_SCOPE_NODES:
+            current_scope = old_scope
+
+    find_enhanced_definitions(ast)
+    find_enhanced_references(ast)
 
 
 def generate_ast_diff(
@@ -582,7 +787,7 @@ def generate_ast_diff(
 
     # Get the changed ranges
     changed_ranges = []
-    for edit in new_tree.get_changed_ranges(old_tree):
+    for edit in new_tree.changed_ranges(old_tree):
         changed_ranges.append(
             {
                 "start_byte": edit.start_byte,
@@ -680,7 +885,7 @@ def register_enhanced_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool(name="parse_to_ast_incremental")
     def parse_to_ast_incremental(
-        code: str,
+        code: Optional[str] = None,
         old_code: Optional[str] = None,
         language: Optional[str] = None,
         filename: Optional[str] = None,
@@ -699,7 +904,9 @@ def register_enhanced_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def generate_enhanced_asg(
-        code: str, language: Optional[str] = None, filename: Optional[str] = None
+        code: Optional[str] = None,
+        language: Optional[str] = None,
+        filename: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Parse code → enhanced ASG with scope, control flow, and data flow edges."""
         ast_data = parse_code_to_ast_incremental(
@@ -716,10 +923,10 @@ def register_enhanced_tools(mcp_server: Any) -> None:
     ) -> Dict[str, Any]:
         """Compare old/new code versions. Returns only changed AST nodes."""
         ast_old = parse_code_to_ast_incremental(
-            old_code, language=language, filename=filename
+            old_code, language=language, filename=filename, include_tree=True
         )
         ast_new = parse_code_to_ast_incremental(
-            new_code, language=language, filename=filename
+            new_code, language=language, filename=filename, include_tree=True
         )
         if "error" in ast_old:
             return ast_old
@@ -729,9 +936,9 @@ def register_enhanced_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def find_node_at_position(
-        code: str,
-        line: int,
-        column: int,
+        code: Optional[str] = None,
+        line: int = 0,
+        column: int = 0,
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:

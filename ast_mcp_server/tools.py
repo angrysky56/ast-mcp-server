@@ -15,6 +15,12 @@ from tree_sitter import Language, Node, Parser
 LANGUAGE_MODULES = {
     "python": "tree_sitter_python",
     "javascript": "tree_sitter_javascript",
+    "typescript": "tree_sitter_typescript",
+    "go": "tree_sitter_go",
+    "rust": "tree_sitter_rust",
+    "c": "tree_sitter_c",
+    "cpp": "tree_sitter_cpp",
+    "java": "tree_sitter_java",
 }
 
 # Path to the parsers availability marker
@@ -64,12 +70,36 @@ def init_parsers() -> bool:
         for lang_name, module_name in LANGUAGE_MODULES.items():
             try:
                 module = importlib.import_module(module_name)
-                languages[lang_name] = Language(module.language())
+                # Handle different binding structures
+                if hasattr(module, "language"):
+                    lang_obj = module.language()
+                elif hasattr(module, f"language_{lang_name}"):
+                    lang_obj = getattr(module, f"language_{lang_name}")()
+                elif lang_name == "typescript" and hasattr(
+                    module, "language_typescript"
+                ):
+                    lang_obj = module.language_typescript()
+                else:
+                    # Generic fallback: look for any 'language' callable or attribute
+                    found = False
+                    for attr in dir(module):
+                        if attr.startswith("language") and callable(
+                            getattr(module, attr)
+                        ):
+                            lang_obj = getattr(module, attr)()
+                            found = True
+                            break
+                    if not found:
+                        raise ImportError(
+                            f"Could not find language definition in {module_name}"
+                        )
+
+                languages[lang_name] = Language(lang_obj)
                 available_languages.append(lang_name)
             except ImportError:
                 print(
                     f"Module {module_name} not found. Some language support may be limited.",
-                    file=sys.stderr
+                    file=sys.stderr,
                 )
             except Exception as e:
                 print(f"Error initializing {lang_name} language: {e}", file=sys.stderr)
@@ -77,7 +107,7 @@ def init_parsers() -> bool:
         if available_languages:
             print(
                 f"Successfully initialized parsers for: {', '.join(available_languages)}",
-                file=sys.stderr
+                file=sys.stderr,
             )
             return True
         else:
@@ -125,7 +155,7 @@ def create_field_edges(node: Dict, parent_id: Optional[str] = None) -> List[Dict
     return edges
 
 
-def detect_language(code: str, filename: Optional[str] = None) -> str:
+def detect_language(code: Optional[str] = None, filename: Optional[str] = None) -> str:
     """Detect the programming language from code content and/or filename."""
     if filename:
         ext = filename.split(".")[-1].lower()
@@ -133,29 +163,30 @@ def detect_language(code: str, filename: Optional[str] = None) -> str:
             return LANGUAGE_MAP[ext]
 
     # Simple heuristics for language detection
-    if "def " in code and ":" in code and "import " in code:
-        return "python"
-    elif "func " in code and "{" in code and "}" in code and "package " in code:
-        return "go"
-    elif "fn " in code and "let " in code and "->" in code:
-        return "rust"
-    elif "const " in code and "function" in code and "=>" in code:
-        return "typescript"
-    elif "function" in code and "var " in code and ";" in code:
-        return "javascript"
-    elif "class " in code and "public " in code and "void " in code:
-        return "java"
-    elif "int " in code and "#include" in code:
-        return "c"
-    elif "std::" in code or "template<" in code:
-        return "cpp"
+    if code:
+        if "def " in code and ":" in code and "import " in code:
+            return "python"
+        elif "func " in code and "{" in code and "}" in code and "package " in code:
+            return "go"
+        elif "fn " in code and "let " in code and "->" in code:
+            return "rust"
+        elif "const " in code and "function" in code and "=>" in code:
+            return "typescript"
+        elif "function" in code and "var " in code and ";" in code:
+            return "javascript"
+        elif "class " in code and "public " in code and "void " in code:
+            return "java"
+        elif "int " in code and "#include" in code:
+            return "c"
+        elif "std::" in code or "template<" in code:
+            return "cpp"
 
     # Default to Python if we can't detect
     return "python"
 
 
 def parse_code_to_ast(
-    code: str,
+    code: Optional[str] = None,
     language: Optional[str] = None,
     filename: Optional[str] = None,
     include_children: bool = True,
@@ -177,6 +208,17 @@ def parse_code_to_ast(
         return {
             "error": "Tree-sitter language parsers not available. Run build_parsers.py first."
         }
+
+    # Read from file if code is not provided
+    if code is None:
+        if filename and os.path.exists(filename):
+            try:
+                with open(filename, "r", encoding="utf-8") as f:
+                    code = f.read()
+            except Exception as e:
+                return {"error": f"Error reading file {filename}: {e}"}
+        else:
+            return {"error": "Code content or valid filename must be provided"}
 
     # Detect language if not provided
     if not language:
@@ -398,13 +440,15 @@ def add_js_ts_semantic_edges(ast: Dict[str, Any], edges: List[Dict[str, Any]]) -
 
 
 def analyze_code_structure(
-    code: str, language: Optional[str] = None, filename: Optional[str] = None
+    code: Optional[str] = None,
+    language: Optional[str] = None,
+    filename: Optional[str] = None,
 ) -> Dict:
     """
     Analyze code structure and provide insights.
 
     Args:
-        code: Source code to analyze
+        code: Source code to analyze (optional if filename provided)
         language: Programming language identifier (optional)
         filename: Source file name (optional)
 
@@ -416,6 +460,16 @@ def analyze_code_structure(
     if "error" in ast_data:
         return ast_data
 
+    # Ensure we have code for metrics
+    if code is None and filename and os.path.exists(filename):
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                code = f.read()
+        except Exception:
+            code = ""  # Should handle gracefully if read failed (though parse would have likely failed too)
+
+    code_length = len(code) if code else 0
+
     # Perform analysis based on the AST
     language = ast_data["language"]
     ast = ast_data["ast"]
@@ -423,7 +477,7 @@ def analyze_code_structure(
     # Collect structure information
     structure: Dict[str, Any] = {
         "language": language,
-        "code_length": len(code),
+        "code_length": code_length,
         "functions": [],
         "classes": [],
         "imports": [],
@@ -580,9 +634,87 @@ def analyze_js_ts_structure(ast: Dict[str, Any], structure: Dict[str, Any]) -> N
         ast: The parsed AST dictionary
         structure: Output dictionary to populate with analysis results
     """
-    # Similar implementation as the Python version but adapted for JS/TS
-    # Since this is a demo, we're keeping it simplified
-    pass
+    """Analyze JavaScript/TypeScript code structure."""
+    functions: List[Dict[str, Any]] = []
+    classes: List[Dict[str, Any]] = []
+    imports: List[Dict[str, Any]] = []
+
+    def extract_structures(node: Dict[str, Any]) -> None:
+        type_ = node["type"]
+
+        # Functions
+        if type_ in ["function_declaration", "method_definition", "arrow_function"]:
+            name = "anonymous"
+            # Try to find name in children (identifier)
+            # For method/function_declaration, usually a child 'identifier'
+            for child in node.get("children", []):
+                if (
+                    child["type"] == "identifier"
+                    or child["type"] == "property_identifier"
+                ):
+                    name = child["text"]
+                    break
+
+            # For variable decl with arrow function: const foo = () => ...
+            # We might miss the name 'foo' because it's in the parent variable_declarator.
+            # This is a simplified extraction.
+
+            functions.append(
+                {
+                    "name": name,
+                    "location": {
+                        "start_line": node["start_point"]["row"] + 1,
+                        "end_line": node["end_point"]["row"] + 1,
+                    },
+                    "type": type_,
+                }
+            )
+
+        # Classes
+        elif type_ == "class_declaration":
+            name = "anonymous"
+            for child in node.get("children", []):
+                if child["type"] == "type_identifier":
+                    name = child["text"]
+                    break
+
+            classes.append(
+                {
+                    "name": name,
+                    "location": {
+                        "start_line": node["start_point"]["row"] + 1,
+                        "end_line": node["end_point"]["row"] + 1,
+                    },
+                }
+            )
+
+        # Imports
+        elif type_ == "import_statement":
+            # Extract source
+            source = ""
+            for child in node.get("children", []):
+                if child["type"] == "string":
+                    source = child["text"].strip("'\"")
+                    break
+
+            imports.append({"module": source, "line": node["start_point"]["row"] + 1})
+
+        # Recurse
+        for child in node.get("children", []):
+            extract_structures(child)
+
+    extract_structures(ast)
+
+    structure["functions"] = functions
+    structure["classes"] = classes
+    structure["imports"] = imports
+    # Note: Complexity metrics are calculated by parent function using node counts, so we iterate separately or let parent handle?
+    # analyze_code_structure calculates total_nodes/nesting genericly?
+    # No, analyze_code_structure calls analyze_python_structure and EXPECTS it to populate structure.
+    # But complexity_metrics in analyze_code_structure are initialized.
+    # Let's double check analyze_code_structure.
+    # Ah, analyze_code_structure calls count_nodes(ast) ITSELF after the language specific analyzer.
+    # So we don't need to do complexity here.
 
 
 def analyze_go_structure(ast: Dict[str, Any], structure: Dict[str, Any]) -> None:
@@ -605,7 +737,7 @@ def register_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def parse_to_ast(
-        code: str,
+        code: Optional[str] = None,
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict:
@@ -614,7 +746,7 @@ def register_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def generate_asg(
-        code: str,
+        code: Optional[str] = None,
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict:
@@ -624,7 +756,7 @@ def register_tools(mcp_server: Any) -> None:
 
     @mcp_server.tool()
     def analyze_code(
-        code: str,
+        code: Optional[str] = None,
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict:

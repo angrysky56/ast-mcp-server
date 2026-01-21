@@ -113,7 +113,7 @@ AST_CACHE: LRUCache = LRUCache(MAX_AST_CACHE_SIZE)
 
 
 def cached_parse_to_ast(
-    code: str,
+    code: Optional[str] = None,
     language: Optional[str] = None,
     filename: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -127,10 +127,16 @@ def cached_parse_to_ast(
 
     # Detect language for consistent cache keys
     if not language:
-        language = detect_language(code, filename)
+        language = detect_language(code or "", filename)
+
+    # Use filename as cache key component if code is None (lazy hash)
+    # But parse requires content. tools.parse_code_to_ast handles reading,
+    # so we should probably read here if we want a content hash.
+    # For now, let's defer reading to the tool but use filename in hash if code is missing.
+    content_key = code if code else (filename if filename else "")
 
     cache_key = hashlib.md5(
-        f"{code}:{language}".encode(), usedforsecurity=False
+        f"{content_key}:{language}".encode(), usedforsecurity=False
     ).hexdigest()
 
     # Check cache first
@@ -151,8 +157,8 @@ def cached_parse_to_ast(
 # ============================================================================
 @mcp.tool()
 def analyze_project(
-    code: str,
     project_name: str,
+    code: Optional[str] = None,
     language: Optional[str] = None,
     filename: Optional[str] = None,
     include_summary: bool = True,
@@ -197,6 +203,17 @@ def analyze_project(
                 len(structure_data.get("imports", [])) if structure_data else 0
             )
 
+            # Ensure we have code for preview
+            preview_code = code
+            if not preview_code and filename and os.path.exists(filename):
+                try:
+                    with open(filename, "r", encoding="utf-8") as f:
+                        preview_code = f.read()
+                except Exception:
+                    preview_code = ""
+
+            preview_text = preview_code[:500] if preview_code else ""
+
             prompt = f"""Summarize this code analysis in 2-3 sentences:
 
 Project: {project_name}
@@ -206,7 +223,7 @@ Classes: {class_count}
 Imports: {import_count}
 
 Code preview (first 500 chars):
-{code[:500]}
+{preview_text}
 
 Provide a concise summary of what this code does."""
 

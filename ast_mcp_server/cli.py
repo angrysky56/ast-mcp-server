@@ -162,5 +162,45 @@ def test_pattern(
         console.print(f"❌ [red]Pattern test failed:[/red] {e}")
 
 
+@app.command()
+def analyze_project(
+    filename: str = typer.Option(..., "--filename", "-f", help="File to analyze"),
+    project_name: str = typer.Option(
+        ..., "--project-name", "-n", help="Name of the project output"
+    ),
+    language: Optional[str] = typer.Option(
+        None, "--lang", "-l", help="Language override"
+    ),
+) -> None:
+    """Analyze a project file and save results to disk."""
+    try:
+        from ast_mcp_server.server import analyze_project as analyze_tool
+
+        console.print(f"[blue]Analyzing {filename} as project {project_name}...[/blue]")
+
+        # Call the server function directly
+        # It accepts optional code, filename, project_name
+        result = analyze_tool(
+            project_name=project_name,
+            filename=filename,
+            language=language,
+            code=None,  # Let it read from file
+            include_summary=True,
+        )
+
+        if "error" in result:
+            console.print(f"❌ [red]Analysis failed:[/red] {result['error']}")
+        else:
+            console.print("✅ [green]Analysis complete![/green]")
+            console.print(f"Output folder: {result.get('output_folder')}")
+            if "summary" in result:
+                console.print(
+                    Panel(result["summary"], title="AI Summary", border_style="cyan")
+                )
+
+    except Exception as e:
+        console.print(f"❌ [red]Error:[/red] {e}")
+
+
 if __name__ == "__main__":
     app()
