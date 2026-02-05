@@ -6,18 +6,35 @@ Provides code structure and semantic analysis through MCP.
 Includes enhanced features for scope handling, incremental parsing, and Neo4j integration.
 """
 
+import fnmatch  # Add this line
+import hashlib
 import json
 import os
+import sys
 from collections import OrderedDict
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, cast
 
 from mcp.server.fastmcp import FastMCP
 
+from ast_mcp_server.neo4j_tools import sync_file_to_graph
+from ast_mcp_server.output_manager import AnalysisOutputManager, get_output_manager
 from ast_mcp_server.resources import (
     CACHE_DIR,
+    get_cache_path,
     register_resources,
 )
-from ast_mcp_server.tools import register_tools
+from ast_mcp_server.server_llm import get_server_llm
+from ast_mcp_server.tools import (
+    analyze_code_structure,
+    create_asg_from_ast,
+    detect_language,
+    init_parsers,
+    parse_code_to_ast,
+    register_tools,
+)
+
+# Optional tool modules - keep conditional imports as they are
 
 # Conditionally import optional tool modules
 register_enhanced_tools: Optional[Callable[[Any], None]] = None
@@ -121,9 +138,7 @@ def cached_parse_to_ast(
 
     Avoids re-parsing identical code. Cache key is MD5 hash of code + language.
     """
-    import hashlib
-
-    from ast_mcp_server.tools import detect_language, parse_code_to_ast
+    # Detect language for consistent cache keys
 
     # Detect language for consistent cache keys
     if not language:
@@ -162,13 +177,9 @@ def analyze_source_file(
     language: Optional[str] = None,
     filename: Optional[str] = None,
     include_summary: bool = True,
+    output_folder: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Analyze a single source file, save reports to disk, and optionally generate an AI summary."""
-    from ast_mcp_server.output_manager import get_output_manager
-    from ast_mcp_server.tools import (
-        analyze_code_structure,
-        create_asg_from_ast,
-    )
 
     # Use cached parsing to avoid re-parsing identical code
     ast_data = cached_parse_to_ast(code, language, filename)
@@ -178,19 +189,19 @@ def analyze_source_file(
     asg_data = create_asg_from_ast(ast_data)
     analysis_data = analyze_code_structure(code, language, filename)
 
-    output_manager = get_output_manager()
+    output_manager: AnalysisOutputManager = get_output_manager()
     result = output_manager.save_analysis(
         project_name=project_name,
         ast_data=ast_data,
         asg_data=asg_data,
         structure_data=analysis_data,
+        output_path=Path(output_folder) if output_folder else None,
+        source_filename=filename,
     )
 
     ai_summary = None
     if include_summary:
         try:
-            from ast_mcp_server.server_llm import get_server_llm
-
             llm = get_server_llm()
             structure_data = analysis_data.get("structure")
             # func_count, class_count, import_count replaced by detailed lists below
@@ -201,8 +212,8 @@ def analyze_source_file(
                 try:
                     with open(filename, "r", encoding="utf-8") as f:
                         preview_code = f.read()
-                except Exception:
-                    preview_code = ""
+                except (OSError, IOError) as e:
+                    preview_code = f"(Error reading file: {e})"
 
             # Increase limit significantly (Claude Haiku has 200k context, 15k chars is safe)
             preview_text = preview_code[:15000] if preview_code else ""
@@ -256,13 +267,15 @@ Instructions:
 
             ai_summary = llm.chat_sync(prompt, max_tokens=1000)
 
-            from pathlib import Path
-
             summary_path = Path(result["folder"]) / "summary.txt"
             summary_path.write_text(ai_summary)
             result["files_created"].append("summary.txt")
-        except Exception as e:
+        except (RuntimeError, ValueError, TypeError, KeyError) as e:
             ai_summary = f"(Summary unavailable: {e})"
+            if "401" in str(e) or "Unauthorized" in str(e):
+                # Propagate auth error to caller if possible, or just keep it in summary
+                # For now, let's just make the error message recognizable
+                ai_summary = f"AUTH_ERROR: {e}"
 
     response: Dict[str, Any] = {
         "status": "success",
@@ -289,23 +302,22 @@ if ENHANCED_TOOLS_AVAILABLE:
         cache_path = os.path.join(CACHE_DIR, f"{diff_hash}_diff.json")
         if os.path.exists(cache_path):
             try:
-                with open(cache_path, "r") as f:
+                with open(cache_path, "r", encoding="utf-8") as f:
                     return cast(Dict[str, Any], json.load(f))
-            except Exception as e:
+            except (OSError, IOError, json.JSONDecodeError) as e:
                 return {"error": f"Error reading cached diff: {e}"}
         return {"error": "Diff not found. Use diff_ast tool first."}
 
     @mcp.resource("enhanced_asg://{code_hash}")
     def enhanced_asg_resource(code_hash: str) -> Dict[str, Any]:
         """Resource for cached enhanced ASG."""
-        from ast_mcp_server.resources import get_cache_path
 
         cache_path = get_cache_path(code_hash, "enhanced_asg")
         if os.path.exists(cache_path):
             try:
-                with open(cache_path, "r") as f:
+                with open(cache_path, "r", encoding="utf-8") as f:
                     return cast(Dict[str, Any], json.load(f))
-            except Exception as e:
+            except (OSError, IOError, json.JSONDecodeError) as e:
                 return {"error": f"Error reading cached enhanced ASG: {e}"}
         return {
             "error": "Enhanced ASG not found. Use generate_enhanced_asg tool first."
@@ -329,13 +341,6 @@ def analyze_project(
         sync_to_db: Whether to sync nodes/edges to Neo4j (default: True)
         include_summary: Whether to generate AI summaries for each file (default: True)
     """
-    import os
-
-    # We call the functions directly.
-    # Note: analyze_source_file is defined in this module, so we can call it.
-    # sync_file_to_graph is in neo4j_tools.
-    from ast_mcp_server.neo4j_tools import sync_file_to_graph
-
     if file_extensions is None:
         file_extensions = [".py", ".js", ".ts", ".tsx", ".go"]
 
@@ -344,8 +349,15 @@ def analyze_project(
     synced_count = 0
     failures = []
 
+    # Create ONE output folder for the whole project
+    output_manager = get_output_manager()
+    project_folder = output_manager.create_analysis_folder(project_name)
+
     if not os.path.exists(project_path):
         return {"error": f"Project path {project_path} does not exist"}
+
+    llm_error_count = 0
+    llm_active = include_summary
 
     # Walk directory
     for root, dirs, files in os.walk(project_path):
@@ -361,10 +373,86 @@ def analyze_project(
                 "__pycache__",
                 ".ipynb_checkpoints",
                 "analyzed_projects",
+                "dist",
+                ".vscode",
+                ".mypy_cache",
+                ".env",
+                "build",
+                "vendor",
+                "site-packages",
+                "target",
+                "bazel-bin",
+                "bazel-out",
+                ".gradle",
+                "gradle",
+                "maven",
+                "out",
+                "public",
+                "static",
+                ".idea",
+                ".pytest_cache",
+                ".trunk",
+                ".next",
+                ".svelte-kit",
+                "logs",
+                "tmp",
+                "docs/_build",
+                "html",
+                "man",
             ]
         ]
 
         for file in files:
+            # Define common ignored file patterns
+            ignored_file_patterns = [
+                ".DS_Store",
+                "Thumbs.db",
+                "*.log",
+                "*.tmp",
+                "*~",
+                ".#*",
+                ".env",
+                "*.pt",
+                "*.bak",
+                "*.swp",
+                "*.orig",
+                "*.pyc",
+                "*.class",
+                "*.o",
+                "*.obj",
+                "*.exe",
+                "*.dll",
+                "*.so",
+                "*.dylib",
+                "*.onnx",
+                "*.pkl",
+                "*.bin",
+                "*.zip",
+                "*.tar.gz",
+                "*.rar",
+                "*.7z",
+                "*.jar",
+                "*.war",
+                "*.wasm",
+                "*.jpg",
+                "*.jpeg",
+                "*.png",
+                "*.gif",
+                "*.bmp",
+                "*.svg",
+                "*.mp3",
+                "*.wav",
+                "*.ogg",
+                "*.flac",
+                "*.mp4",
+                "*.avi",
+                "*.mov",
+            ]
+
+            # Skip ignored files
+            if any(fnmatch.fnmatch(file, pattern) for pattern in ignored_file_patterns):
+                continue
+
             ext = os.path.splitext(file)[1]
             if ext not in file_extensions:
                 continue
@@ -376,26 +464,43 @@ def analyze_project(
                     code_content = f.read()
 
                 # 1. Analyze (Local JSON + Summary)
-                analyze_source_file(
+                # If we've hit too many auth errors, disable summaries for the rest of the run
+                current_include_summary = llm_active and (llm_error_count < 3)
+
+                res = analyze_source_file(
                     project_name=project_name,
                     code=code_content,
                     filename=full_path,
-                    include_summary=include_summary,
+                    include_summary=current_include_summary,
+                    output_folder=str(project_folder),
                 )
+
+                if "AUTH_ERROR" in res.get("summary", ""):
+                    llm_error_count += 1
+                    if llm_error_count >= 3:
+                        llm_active = False  # Kill switch
+
                 processed_count += 1
 
                 # 2. Sync to DB
                 if sync_to_db:
                     sync_res = sync_file_to_graph(
-                        code=code_content, file_path=full_path
+                        code=code_content,
+                        file_path=full_path,
+                        project_name=project_name,
                     )
                     if "error" not in sync_res:
                         synced_count += 1
                     else:
-                        # Log sync error but don't count as full failure if analysis worked?
-                        pass
+                        failed_count += 1
+                        failures.append(
+                            {
+                                "file": full_path,
+                                "error": f"Sync to DB failed: {sync_res.get('error', 'Unknown')}",
+                            }
+                        )
 
-            except Exception as e:
+            except (RuntimeError, OSError, IOError) as e:
                 failed_count += 1
                 failures.append({"file": full_path, "error": str(e)})
 
@@ -403,19 +508,18 @@ def analyze_project(
         "processed_files": processed_count,
         "failed_files": failed_count,
         "synced_files": synced_count,
+        "output_folder": str(project_folder),
+        "llm_summaries_completed": (llm_error_count < 3) and include_summary,
         "failures": failures,
     }
 
 
 def main() -> None:
     """Main entry point for the AST MCP Server."""
-    import sys
 
     # CRITICAL: All startup messages must go to stderr to avoid corrupting
     # the MCP JSONRPC protocol on stdout
     print("Starting AST/ASG Code Analysis MCP Server...", file=sys.stderr)
-
-    from ast_mcp_server.tools import init_parsers
 
     if not init_parsers():
         print(

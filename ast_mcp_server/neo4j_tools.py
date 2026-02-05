@@ -16,16 +16,19 @@ from ast_mcp_server.tools import (
 
 
 def sync_file_to_graph(
-    code: str, file_path: str, language: Optional[str] = None
+    code: str, file_path: str, language: Optional[str] = None, project_name: Optional[str] = None
 ) -> Dict[str, Any]:
     """Parse code → store AST+ASG+metrics in Neo4j. Returns {stored: {ast_id, asg_id, analysis_id}}."""
     neo4j_client = get_neo4j_client()
 
-    # Ensure connected
+    # Ensure connected and indexes present
     if not neo4j_client.is_connected():
         return {
             "error": "Neo4j connection not available. Check server logs and configuration."
         }
+
+    # Run index creation (idempotent)
+    neo4j_client.ensure_indexes()
 
     results: Dict[str, Any] = {
         "file_path": file_path,
@@ -39,14 +42,14 @@ def sync_file_to_graph(
         return {"error": f"Failed to parse AST: {ast_result['error']}"}
 
     # Store AST
-    ast_id = neo4j_client.store_ast(ast_result, file_path)
+    ast_id = neo4j_client.store_ast(ast_result, file_path, project_name=project_name)
     if ast_id:
         results["stored"]["ast_id"] = ast_id
 
     # 2. Generate ASG
     asg_result = create_asg_from_ast(ast_result)
     if "error" not in asg_result:
-        asg_id = neo4j_client.store_asg(asg_result, file_path)
+        asg_id = neo4j_client.store_asg(asg_result, file_path, project_name=project_name)
         if asg_id:
             results["stored"]["asg_id"] = asg_id
 
@@ -55,7 +58,7 @@ def sync_file_to_graph(
         code, language=language, filename=file_path
     )
     if "error" not in analysis_result:
-        analysis_id = neo4j_client.store_analysis(analysis_result, file_path)
+        analysis_id = neo4j_client.store_analysis(analysis_result, file_path, project_name=project_name)
         if analysis_id:
             results["stored"]["analysis_id"] = analysis_id
 

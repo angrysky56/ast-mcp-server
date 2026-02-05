@@ -60,7 +60,28 @@ class Neo4jClient:
         except Exception:
             return False
 
-    def store_ast(self, ast_data: Dict[str, Any], file_path: str) -> Optional[str]:
+    def ensure_indexes(self) -> None:
+        """Ensure necessary indexes exist for performance."""
+        if not self.driver:
+            return
+        queries = [
+            "CREATE INDEX IF NOT EXISTS FOR (f:SourceFile) ON (f.path)",
+            "CREATE INDEX IF NOT EXISTS FOR (f:SourceFile) ON (f.project_name)",
+            "CREATE INDEX IF NOT EXISTS FOR (ast:AST) ON (ast.id)",
+            "CREATE INDEX IF NOT EXISTS FOR (asg:ASG) ON (asg.id)",
+            "CREATE INDEX IF NOT EXISTS FOR (a:CodeAnalysis) ON (a.id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:ASTNode) ON (n.id)",
+            "CREATE INDEX IF NOT EXISTS FOR (n:ASGNode) ON (n.id)",
+            "CREATE INDEX IF NOT EXISTS FOR (f:Function) ON (f.id)"
+        ]
+        with self.driver.session(database=self.db) as session:
+            for q in queries:
+                try:
+                    session.run(q)
+                except Exception as e:
+                    print(f"Warning: Failed to create index: {e}", file=sys.stderr)
+
+    def store_ast(self, ast_data: Dict[str, Any], file_path: str, project_name: Optional[str] = None) -> Optional[str]:
         """
         Store AST data in Neo4j using batch insertion.
 
@@ -111,15 +132,16 @@ class Neo4jClient:
             session.run(
                 """
                 MERGE (f:SourceFile {path: $path})
-                SET f.name = $name, f.language = $language
+                SET f.name = $name, f.language = $language, f.project_name = $project_name
                 MERGE (ast:AST {id: $ast_id})
-                SET ast.language = $language
+                SET ast.language = $language, ast.project_name = $project_name
                 MERGE (f)-[:HAS_AST]->(ast)
                 """,
                 path=file_path,
                 name=file_name,
                 ast_id=ast_id,
                 language=ast_data.get("language", "unknown"),
+                project_name=project_name,
             )
 
             # Batch insert nodes
@@ -155,7 +177,7 @@ class Neo4jClient:
 
         return ast_id
 
-    def store_asg(self, asg_data: Dict[str, Any], file_path: str) -> Optional[str]:
+    def store_asg(self, asg_data: Dict[str, Any], file_path: str, project_name: Optional[str] = None) -> Optional[str]:
         """
         Store ASG data in Neo4j using batch insertion.
 
@@ -200,15 +222,16 @@ class Neo4jClient:
             session.run(
                 """
                 MERGE (f:SourceFile {path: $path})
-                SET f.name = $name, f.language = $language
+                SET f.name = $name, f.language = $language, f.project_name = $project_name
                 MERGE (asg:ASG {id: $asg_id})
-                SET asg.language = $language
+                SET asg.language = $language, asg.project_name = $project_name
                 MERGE (f)-[:HAS_ASG]->(asg)
                 """,
                 path=file_path,
                 name=file_name,
                 asg_id=asg_id,
                 language=asg_data.get("language", "unknown"),
+                project_name=project_name,
             )
 
             # Batch insert nodes
@@ -242,7 +265,7 @@ class Neo4jClient:
         return asg_id
 
     def store_analysis(
-        self, analysis_data: Dict[str, Any], file_path: str
+        self, analysis_data: Dict[str, Any], file_path: str, project_name: Optional[str] = None
     ) -> Optional[str]:
         """
         Store code analysis results in Neo4j using batch insertion.
@@ -286,12 +309,13 @@ class Neo4jClient:
             session.run(
                 """
                 MERGE (f:SourceFile {path: $path})
-                SET f.name = $name, f.language = $language
+                SET f.name = $name, f.language = $language, f.project_name = $project_name
                 MERGE (a:CodeAnalysis {id: $analysis_id})
                 SET a.language = $language,
                     a.code_length = $code_length,
                     a.max_nesting_level = $max_nesting,
-                    a.total_nodes = $total_nodes
+                    a.total_nodes = $total_nodes,
+                    a.project_name = $project_name
                 MERGE (f)-[:HAS_ANALYSIS]->(a)
                 """,
                 path=file_path,
@@ -301,6 +325,7 @@ class Neo4jClient:
                 code_length=analysis_data.get("code_length", 0),
                 max_nesting=metrics.get("max_nesting_level", 0),
                 total_nodes=metrics.get("total_nodes", 0),
+                project_name=project_name,
             )
 
             # Batch insert functions

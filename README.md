@@ -95,6 +95,8 @@ python build_parsers.py
 
 4. In Claude Desktop, you can now use the AST-based code analysis tools by referencing code files or pasting code snippets.
 
+![Antigravity Self-Scan Example](image.png)
+
 ## Development
 
 ### Development Environment Setup
