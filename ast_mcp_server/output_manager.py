@@ -152,7 +152,7 @@ class AnalysisOutputManager:
             self._save_json(metadata_path, metadata)
 
         return {
-            "folder": str(folder),
+            "folder": str(target_folder),
             "files_created": files_created,
         }
 

@@ -161,7 +161,28 @@ Answer concisely based only on the provided context."""
 
     def chat_sync(self, prompt: str, max_tokens: int = 500) -> str:
         """Synchronous wrapper for chat()."""
-        return asyncio.run(self.chat(prompt, max_tokens))
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        if loop.is_running():
+            # If we are in a running loop, we can't use run_until_complete.
+            # However, for an MCP tool, we should ideally be calling 'await chat()'
+            # but since analyze_project is synchronous (mcp.tool decorator on non-async def),
+            # we need a way to run this.
+            # Using a separate thread is the safest way to run async code from sync code
+            # when the event loop is already running.
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    lambda: asyncio.run(self.chat(prompt, max_tokens))
+                )
+                return future.result()
+        else:
+            return loop.run_until_complete(self.chat(prompt, max_tokens))
 
     def summarize_graph_sync(self, graph: UniversalGraph) -> str:
         """Synchronous wrapper for summarize_graph()."""

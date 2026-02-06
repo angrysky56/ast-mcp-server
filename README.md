@@ -208,7 +208,7 @@ The AST MCP Server connects with Claude Desktop through the Model Context Protoc
 1. **Initialization**: Claude Desktop starts the server using `uv run` with the appropriate working directory
 2. **Language Loading**: The server loads tree-sitter language modules for parsing various programming languages
 3. **MCP Registration**: It registers tools and resources with the MCP protocol
-4. **Analysis**: Claude can access these tools to analyze code you share in the chat
+4. **Analysis**: Claude can access these tools to analyze code you share or local files. Tools are designed to be robust: they can intelligently read from local `filename` paths if the provided code is a placeholder.
 5. **Caching**: Results are cached locally for improved performance
 
 All tool execution happens locally on your machine, with results returned to Claude for interpretation and assistance.

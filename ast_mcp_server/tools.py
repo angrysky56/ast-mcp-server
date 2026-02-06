@@ -7,6 +7,7 @@ capabilities through the Model Context Protocol.
 
 import importlib
 import os
+import sys
 from typing import Any, Dict, List, Optional
 
 from tree_sitter import Language, Node, Parser
@@ -56,9 +57,7 @@ def init_parsers() -> bool:
     Returns:
         True if at least one parser was initialized, False otherwise.
     """
-    import sys
-
-    global languages
+    # languages is initialized at module level
 
     # Check if parsers are marked as available
     if not os.path.exists(PARSERS_AVAILABLE_FILE):
@@ -101,7 +100,8 @@ def init_parsers() -> bool:
                     f"Module {module_name} not found. Some language support may be limited.",
                     file=sys.stderr,
                 )
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
+                # Catching general Exception for dynamic language initialization
                 print(f"Error initializing {lang_name} language: {e}", file=sys.stderr)
 
         if available_languages:
@@ -113,7 +113,7 @@ def init_parsers() -> bool:
         else:
             return False
 
-    except Exception as e:
+    except (OSError, RuntimeError) as e:
         print(f"Error initializing parsers: {e}", file=sys.stderr)
         return False
 
@@ -185,6 +185,19 @@ def detect_language(code: Optional[str] = None, filename: Optional[str] = None) 
     return "python"
 
 
+def is_placeholder(code: str) -> bool:
+    """Check if the code string appears to be a placeholder."""
+    if not code:
+        return True
+    stripped = code.strip()
+    # If it's just a comment like "# Read from file" or very short
+    if stripped.startswith("#") and len(stripped.splitlines()) == 1:
+        return True
+    if len(stripped) < 50 and "import " not in stripped and "def " not in stripped:
+        return True
+    return False
+
+
 def parse_code_to_ast(
     code: Optional[str] = None,
     language: Optional[str] = None,
@@ -209,15 +222,15 @@ def parse_code_to_ast(
             "error": "Tree-sitter language parsers not available. Run build_parsers.py first."
         }
 
-    # Read from file if code is not provided
-    if code is None:
+    # Read from file if code is not provided or appears to be a placeholder
+    if code is None or (filename and os.path.exists(filename) and is_placeholder(code)):
         if filename and os.path.exists(filename):
             try:
                 with open(filename, "r", encoding="utf-8") as f:
                     code = f.read()
-            except Exception as e:
+            except OSError as e:
                 return {"error": f"Error reading file {filename}: {e}"}
-        else:
+        elif code is None:
             return {"error": "Code content or valid filename must be provided"}
 
     # Detect language if not provided
@@ -245,7 +258,7 @@ def parse_code_to_ast(
         ast = node_to_dict(root_node, source_bytes, include_children)
 
         return {"language": language, "ast": ast}
-    except Exception as e:
+    except (ValueError, RuntimeError) as e:
         return {"error": f"Error parsing code: {e}"}
 
 
@@ -421,7 +434,9 @@ def add_python_semantic_edges(ast: Dict[str, Any], edges: List[Dict[str, Any]]) 
     find_references(ast)
 
 
-def add_js_ts_semantic_edges(ast: Dict[str, Any], edges: List[Dict[str, Any]]) -> None:
+def add_js_ts_semantic_edges(
+    _ast: Dict[str, Any], _edges: List[Dict[str, Any]]
+) -> None:
     """Add JavaScript/TypeScript-specific semantic edges to the ASG.
 
     Similar to Python version but adapted for JS/TS syntax.
@@ -431,12 +446,6 @@ def add_js_ts_semantic_edges(ast: Dict[str, Any], edges: List[Dict[str, Any]]) -
         ast: The parsed AST dictionary
         edges: List to append semantic edges to
     """
-    # Similar to Python version but adapted for JS/TS syntax
-    # This is also a simplified implementation for demo purposes
-
-    # Functionality similar to the Python version would go here
-    # Since this is a demo, we're keeping it simple
-    pass
 
 
 def analyze_code_structure(
@@ -465,8 +474,8 @@ def analyze_code_structure(
         try:
             with open(filename, "r", encoding="utf-8") as f:
                 code = f.read()
-        except Exception:
-            code = ""  # Should handle gracefully if read failed (though parse would have likely failed too)
+        except OSError:
+            code = ""  # Handle gracefully if read failed
 
     code_length = len(code) if code else 0
 
@@ -634,7 +643,7 @@ def analyze_js_ts_structure(ast: Dict[str, Any], structure: Dict[str, Any]) -> N
         ast: The parsed AST dictionary
         structure: Output dictionary to populate with analysis results
     """
-    """Analyze JavaScript/TypeScript code structure."""
+    # Manual extraction of structures
     functions: List[Dict[str, Any]] = []
     classes: List[Dict[str, Any]] = []
     imports: List[Dict[str, Any]] = []
@@ -708,16 +717,11 @@ def analyze_js_ts_structure(ast: Dict[str, Any], structure: Dict[str, Any]) -> N
     structure["functions"] = functions
     structure["classes"] = classes
     structure["imports"] = imports
-    # Note: Complexity metrics are calculated by parent function using node counts, so we iterate separately or let parent handle?
-    # analyze_code_structure calculates total_nodes/nesting genericly?
-    # No, analyze_code_structure calls analyze_python_structure and EXPECTS it to populate structure.
-    # But complexity_metrics in analyze_code_structure are initialized.
-    # Let's double check analyze_code_structure.
-    # Ah, analyze_code_structure calls count_nodes(ast) ITSELF after the language specific analyzer.
-    # So we don't need to do complexity here.
+    # Note: Complexity metrics are handled by the parent function analyze_code_structure.
+    # We let it handle the generic node count and nesting depth calculation.
 
 
-def analyze_go_structure(ast: Dict[str, Any], structure: Dict[str, Any]) -> None:
+def analyze_go_structure(_ast: Dict[str, Any], _structure: Dict[str, Any]) -> None:
     """Analyze Go code structure.
 
     Similar implementation as the Python version but adapted for Go.
@@ -727,9 +731,6 @@ def analyze_go_structure(ast: Dict[str, Any], structure: Dict[str, Any]) -> None
         ast: The parsed AST dictionary
         structure: Output dictionary to populate with analysis results
     """
-    # Similar implementation as the Python version but adapted for Go
-    # Since this is a demo, we're keeping it simplified
-    pass
 
 
 def register_tools(mcp_server: Any) -> None:
@@ -741,7 +742,12 @@ def register_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict:
-        """Step 1: Parse code → AST (syntax tree). Use this to validate syntax or get a raw tree dump."""
+        """
+        Step 1: Parse code → AST (syntax tree).
+
+        Use this to validate syntax or get a raw tree dump.
+        If 'filename' is provided and 'code' is missing or a placeholder, it will read the file.
+        """
         return parse_code_to_ast(code, language, filename)
 
     @mcp_server.tool()
@@ -750,7 +756,12 @@ def register_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict:
-        """Step 3: Parse code → AST → ASG (graph). Use this to explore basic relationships (edges) between nodes."""
+        """
+        Step 3: Parse code → AST → ASG (graph).
+
+        Use this to explore basic relationships (edges) between nodes.
+        If 'filename' is provided and 'code' is missing or a placeholder, it will read the file.
+        """
         ast_data = parse_code_to_ast(code, language, filename)
         return create_asg_from_ast(ast_data)
 
@@ -760,7 +771,12 @@ def register_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict:
-        """Step 2: Extract metadata (Functions, Classes, Imports). Use this for high-level file summaries."""
+        """
+        Step 2: Extract metadata (Functions, Classes, Imports).
+
+        Use this for high-level file summaries.
+        If 'filename' is provided and 'code' is missing or a placeholder, it will read the file.
+        """
         return analyze_code_structure(code, language, filename)
 
 

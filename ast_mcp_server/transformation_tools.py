@@ -7,6 +7,7 @@ complementing the existing AST/ASG analysis tools with pattern-based search and 
 
 import json
 import logging
+import os
 import shutil
 
 # Security Note: We import subprocess to run the 'ast-grep' CLI tool.
@@ -22,7 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Import our existing tools for language detection and validation
-from .tools import LANGUAGE_MAP, detect_language
+from .tools import LANGUAGE_MAP, detect_language, is_placeholder
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +78,7 @@ class AstGrepTransformer:
                 capture_output=True,
                 text=True,
                 timeout=5,
+                check=False,
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -107,6 +109,14 @@ class AstGrepTransformer:
         if not language:
             language = detect_language(code, filename)
 
+        # Read from file if code is a placeholder
+        if filename and os.path.exists(filename) and is_placeholder(code):
+            try:
+                code = Path(filename).read_text(encoding="utf-8")
+            except OSError as e:
+                logger.error("Error reading file %s for search: %s", filename, e)
+                # Fallback to provided code if read fails
+
         # Normalize language for ast-grep
         ast_grep_lang = self._normalize_language_for_ast_grep(language)
 
@@ -129,11 +139,11 @@ class AstGrepTransformer:
             # Safe to run: cmd is a list of arguments, avoiding shell injection.
             # trunk-ignore(bandit/B603)
             result = subprocess.run(  # noqa: S603
-                cmd, capture_output=True, text=True, timeout=30
+                cmd, capture_output=True, text=True, timeout=30, check=False
             )
 
             if result.returncode != 0:
-                logger.error(f"ast-grep search failed: {result.stderr}")
+                logger.error("ast-grep search failed: %s", result.stderr)
                 return []
 
             # Parse JSON output
@@ -162,7 +172,7 @@ class AstGrepTransformer:
             return matches
 
         except (subprocess.TimeoutExpired, json.JSONDecodeError, KeyError) as e:
-            logger.error(f"Error during pattern search: {e}")
+            logger.error("Error during pattern search: %s", e)
             return []
         finally:
             # Cleanup
@@ -238,7 +248,7 @@ class AstGrepTransformer:
             # Safe to run: cmd is a list of arguments, avoiding shell injection.
             # trunk-ignore(bandit/B603)
             result = subprocess.run(  # noqa: S603
-                cmd, capture_output=True, text=True, timeout=30
+                cmd, capture_output=True, text=True, timeout=30, check=False
             )
 
             if result.returncode != 0:
@@ -309,7 +319,8 @@ class AstGrepTransformer:
                 "language": language,
                 "test_matches": len(matches),
             }
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
+            # Catch-all for pattern validation to ensure tool stability
             return {
                 "valid": False,
                 "pattern": pattern,
@@ -375,7 +386,6 @@ class AstGrepTransformer:
     def __del__(self) -> None:
         """Cleanup temporary directory."""
         try:
-            import shutil
 
             if hasattr(self, "temp_dir") and self.temp_dir.exists():
                 shutil.rmtree(self.temp_dir)
@@ -395,7 +405,13 @@ def register_transformation_tools(mcp_server: Any) -> None:
         language: Optional[str] = None,
         filename: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Search for structural patterns in code using ast-grep. Returns {matches, count}."""
+        """
+        Search for structural patterns in code using ast-grep.
+
+        Returns {matches, count}.
+        If 'filename' is provided and 'code' is missing or a placeholder, it will read the file.
+        Use generic patterns like 'async def $FUNC($$$ARGS)' for better discovery.
+        """
         try:
             matches = transformer.search_pattern(code, pattern, language, filename)
 
@@ -407,7 +423,8 @@ def register_transformation_tools(mcp_server: Any) -> None:
                 "matches": [asdict(match) for match in matches],
             }
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
+            # Broad catch to return consistent error structure for MCP
             return {"success": False, "error": str(e), "pattern": pattern}
 
     @mcp_server.tool()
@@ -419,7 +436,11 @@ def register_transformation_tools(mcp_server: Any) -> None:
         filename: Optional[str] = None,
         preview_only: bool = False,
     ) -> Dict[str, Any]:
-        """Replace structural patterns in code using ast-grep. Returns {transformed_code, changes_applied}."""
+        """
+        Replace structural patterns in code using ast-grep.
+
+        Returns {transformed_code, changes_applied}.
+        """
         try:
             if preview_only:
                 # Just search to show what would be transformed
@@ -435,6 +456,15 @@ def register_transformation_tools(mcp_server: Any) -> None:
                     "original_code": code,
                     "transformed_code": None,
                 }
+
+            # Read from file if code is a placeholder
+            if filename and os.path.exists(filename) and is_placeholder(code):
+                try:
+                    code = Path(filename).read_text(encoding="utf-8")
+                except OSError as e:
+                    logger.error(
+                        "Error reading file %s for transformation: %s", filename, e
+                    )
 
             # Perform actual transformation
             result = transformer.replace_pattern(
@@ -453,7 +483,8 @@ def register_transformation_tools(mcp_server: Any) -> None:
                 "error_message": result.error_message,
             }
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
+            # Broad catch to return error result to MCP client
             return {
                 "success": False,
                 "error": str(e),
@@ -468,7 +499,8 @@ def register_transformation_tools(mcp_server: Any) -> None:
             result = transformer.validate_pattern(pattern, language)
             return result
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
+            # Ensure validation failure returns structured response
             return {
                 "valid": False,
                 "pattern": pattern,
@@ -525,12 +557,22 @@ def register_transformation_tools(mcp_server: Any) -> None:
                     {
                         "name": "Function Calls",
                         "pattern": "$FUNC($$$ARGS)",
-                        "description": "Match any function call",
+                        "description": "Match any function call with any number of arguments",
                     },
                     {
                         "name": "Class Definitions",
                         "pattern": "class $NAME { $$$BODY }",
-                        "description": "Match class definitions",
+                        "description": "Match class definitions with any content",
+                    },
+                    {
+                        "name": "Async Function (Python)",
+                        "pattern": "async def $FUNC($$$ARGS): $$$BODY",
+                        "description": "Match python async functions",
+                    },
+                    {
+                        "name": "Method with Decorator (Python)",
+                        "pattern": "@$DECORATOR\ndef $FUNC($$$ARGS): $$$BODY",
+                        "description": "Match python methods with a specific decorator",
                     },
                 ]
             },
