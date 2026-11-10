@@ -12,6 +12,8 @@ import sys
 import tempfile
 from typing import Any, Dict, Optional, cast
 
+from ast_mcp_server.path_guard import safe_cache_key
+
 # from .tools import parse_code_to_ast, create_asg_from_ast, analyze_code_structure # These are not used directly in this file
 
 # Directory to store cached ASTs and ASGs
@@ -21,7 +23,10 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 
 def get_cache_path(code_hash: str, resource_type: str) -> str:
     """Get the cache file path for a given code hash and resource type."""
-    return os.path.join(CACHE_DIR, f"{code_hash}_{resource_type}.json")
+    # safe_cache_key stops a crafted key from pointing outside CACHE_DIR
+    return os.path.join(
+        CACHE_DIR, f"{safe_cache_key(code_hash)}_{resource_type}.json"
+    )
 
 
 def get_code_hash(code: str) -> str:

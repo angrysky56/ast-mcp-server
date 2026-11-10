@@ -97,6 +97,28 @@ python build_parsers.py
 
 ![Antigravity Self-Scan Example](image.png)
 
+## Security: which folders the server can read
+
+Tools that take a `filename`, `project_path` or `output_folder` only work
+inside an allow-list of folders. Set it in `.env`:
+
+```bash
+AST_MCP_ALLOWED_ROOTS=/home/you/projects:/another/folder
+```
+
+- If unset, only the folder the server is started in is allowed.
+- `..`, `~` and symlinks are resolved before the check, so a link pointing
+  outside an allowed folder is refused.
+- Files that usually hold secrets (`.env`, `*.pem`, `*.key`, SSH keys,
+  anything under `.ssh` / `.aws` / `.gnupg` / `.kube`) are refused even inside
+  an allowed folder. This matters because `analyze_source_file` sends file
+  contents to your configured LLM provider for the summary.
+- Passing code directly (the `code` argument) is unaffected; `filename` is
+  then only a language hint.
+
+This is a local, single-user stdio server. The allow-list limits what a
+confused or prompt-injected agent can make it read; it is not a sandbox.
+
 ## Development
 
 ### Development Environment Setup

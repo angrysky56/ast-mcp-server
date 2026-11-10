@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional
 
 from tree_sitter import Language, Node, Parser
 
+from ast_mcp_server.path_guard import PathNotAllowedError, read_source_file
+
 # Language modules to import
 LANGUAGE_MODULES = {
     "python": "tree_sitter_python",
@@ -223,15 +225,23 @@ def parse_code_to_ast(
         }
 
     # Read from file if code is not provided or appears to be a placeholder
-    if code is None or (filename and os.path.exists(filename) and is_placeholder(code)):
-        if filename and os.path.exists(filename):
-            try:
-                with open(filename, "r", encoding="utf-8") as f:
-                    code = f.read()
-            except OSError as e:
+    # The path is checked against the allow-list (see path_guard) before any
+    # filesystem access, so a disallowed path reveals nothing about the disk.
+    if filename and (code is None or is_placeholder(code)):
+        try:
+            code = read_source_file(filename)
+        except PathNotAllowedError as e:
+            if code is None:
+                return {"error": f"Cannot read {filename}: {e}"}
+            # Code was supplied; treat filename as a language hint only.
+        except (OSError, UnicodeDecodeError) as e:
+            if code is None:
+                if isinstance(e, FileNotFoundError):
+                    return {"error": "Code content or valid filename must be provided"}
                 return {"error": f"Error reading file {filename}: {e}"}
-        elif code is None:
-            return {"error": "Code content or valid filename must be provided"}
+            # Unreadable file but code was supplied; fall back to that code.
+    elif code is None:
+        return {"error": "Code content or valid filename must be provided"}
 
     # Detect language if not provided
     if not language:
@@ -470,12 +480,11 @@ def analyze_code_structure(
         return ast_data
 
     # Ensure we have code for metrics
-    if code is None and filename and os.path.exists(filename):
+    if filename and (code is None or is_placeholder(code)):
         try:
-            with open(filename, "r", encoding="utf-8") as f:
-                code = f.read()
-        except OSError:
-            code = ""  # Handle gracefully if read failed
+            code = read_source_file(filename)
+        except (OSError, UnicodeDecodeError):
+            code = code or ""  # Handle gracefully if read failed or not allowed
 
     code_length = len(code) if code else 0
 

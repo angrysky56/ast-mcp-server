@@ -6,6 +6,8 @@ Provides semantic search and graph query tools.
 
 from typing import Any, Dict, List, Optional
 
+from ast_mcp_server.path_guard import resolve_allowed_path
+
 # Try to import USS components
 try:
     from ast_mcp_server.uss_core import UniversalGraph
@@ -71,7 +73,8 @@ def register_uss_tools(mcp_server: Any) -> None:
         - query: Filter nodes by node_type
         """
         try:
-            graph = UniversalGraph.load_json(graph_path)
+            # allow-list checked (see path_guard)
+            graph = UniversalGraph.load_json(str(resolve_allowed_path(graph_path)))
         except Exception as e:
             return {"error": f"Failed to load graph: {e}"}
 

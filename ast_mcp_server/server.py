@@ -18,12 +18,17 @@ from typing import Any, Callable, Dict, List, Optional, cast
 from mcp.server.fastmcp import FastMCP
 
 from ast_mcp_server.neo4j_tools import sync_file_to_graph
-from ast_mcp_server.output_manager import AnalysisOutputManager, get_output_manager
-from ast_mcp_server.resources import (
-    CACHE_DIR,
-    get_cache_path,
-    register_resources,
+from ast_mcp_server.output_manager import (
+    ANALYZED_PROJECTS_DIR,
+    AnalysisOutputManager,
+    get_output_manager,
 )
+from ast_mcp_server.path_guard import (
+    PathNotAllowedError,
+    read_source_file,
+    resolve_allowed_path,
+)
+from ast_mcp_server.resources import get_cache_path, register_resources
 from ast_mcp_server.server_llm import get_server_llm
 from ast_mcp_server.tools import (
     analyze_code_structure,
@@ -181,6 +186,16 @@ def analyze_source_file(
 ) -> Dict[str, Any]:
     """Analyze a single source file, save reports to disk, and optionally generate an AI summary."""
 
+    # Reports may only be written inside the allow-list or analyzed_projects/
+    safe_output: Optional[Path] = None
+    if output_folder:
+        try:
+            safe_output = resolve_allowed_path(
+                output_folder, extra_roots=[ANALYZED_PROJECTS_DIR]
+            )
+        except PathNotAllowedError as e:
+            return {"error": f"Cannot write to {output_folder}: {e}"}
+
     # Use cached parsing to avoid re-parsing identical code
     ast_data = cached_parse_to_ast(code, language, filename)
     if "error" in ast_data:
@@ -195,7 +210,7 @@ def analyze_source_file(
         ast_data=ast_data,
         asg_data=asg_data,
         structure_data=analysis_data,
-        output_path=Path(output_folder) if output_folder else None,
+        output_path=safe_output,
         source_filename=filename,
     )
 
@@ -208,11 +223,11 @@ def analyze_source_file(
 
             # Ensure we have code for preview
             preview_code = code
-            if not preview_code and filename and os.path.exists(filename):
+            if not preview_code and filename:
                 try:
-                    with open(filename, "r", encoding="utf-8") as f:
-                        preview_code = f.read()
-                except (OSError, IOError) as e:
+                    # allow-list checked; nothing outside it reaches the LLM
+                    preview_code = read_source_file(filename)
+                except (OSError, UnicodeDecodeError) as e:
                     preview_code = f"(Error reading file: {e})"
 
             # Increase limit significantly (Claude Haiku has 200k context, 15k chars is safe)
@@ -299,7 +314,7 @@ if ENHANCED_TOOLS_AVAILABLE:
     @mcp.resource("diff://{diff_hash}")
     def diff_resource(diff_hash: str) -> Dict[str, Any]:
         """Resource for cached AST diff between code versions."""
-        cache_path = os.path.join(CACHE_DIR, f"{diff_hash}_diff.json")
+        cache_path = get_cache_path(diff_hash, "diff")
         if os.path.exists(cache_path):
             try:
                 with open(cache_path, "r", encoding="utf-8") as f:
@@ -349,12 +364,18 @@ def analyze_project(
     synced_count = 0
     failures = []
 
+    # Check the project root against the allow-list before touching the disk
+    try:
+        project_path = str(resolve_allowed_path(project_path))
+    except PathNotAllowedError as e:
+        return {"error": f"Cannot analyze {project_path}: {e}"}
+
+    if not os.path.isdir(project_path):
+        return {"error": f"Project path {project_path} does not exist"}
+
     # Create ONE output folder for the whole project
     output_manager = get_output_manager()
     project_folder = output_manager.create_analysis_folder(project_name)
-
-    if not os.path.exists(project_path):
-        return {"error": f"Project path {project_path} does not exist"}
 
     llm_error_count = 0
     llm_active = include_summary
@@ -459,8 +480,10 @@ def analyze_project(
 
             full_path = os.path.join(root, file)
             try:
-                # Read code once
-                with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+                # Read code once. Each file is re-checked so a symlink that
+                # points outside the allow-list is skipped, not followed.
+                safe_file = resolve_allowed_path(full_path)
+                with open(safe_file, "r", encoding="utf-8", errors="ignore") as f:
                     code_content = f.read()
 
                 # 1. Analyze (Local JSON + Summary)
