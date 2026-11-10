@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- Path allow-list for every tool that reads or writes files (GitHub issue #2,
+  CWE-22). New `ast_mcp_server/path_guard.py`; folders are set with
+  `AST_MCP_ALLOWED_ROOTS` and default to the server's working directory.
+- Credential-looking files (`.env`, keys, `.ssh` ...) are refused even inside
+  allowed folders.
+- `output_folder` for `analyze_source_file` must be inside the allow-list or
+  `analyzed_projects/`.
+- Cache keys in resource URIs can no longer point outside the cache folder.
+
 ## [0.2.0] - 2025-06-06
 
 ### Added

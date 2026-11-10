@@ -6,12 +6,12 @@ with better scope handling, more complete edge detection, and performance
 optimizations for handling large codebases.
 """
 
-import os
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, TypedDict
 
 from tree_sitter import Parser, Tree
 
+from .path_guard import read_source_file
 from .tools import LANGUAGE_MAP, detect_language, init_parsers, languages, node_to_dict
 
 # Create a parser instance
@@ -214,14 +214,15 @@ def parse_code_to_ast_incremental(
 
     # Read from file if code is not provided
     if code is None:
-        if filename and os.path.exists(filename):
-            try:
-                with open(filename, "r", encoding="utf-8") as f:
-                    code = f.read()
-            except Exception as e:
-                return {"error": f"Error reading file {filename}: {e}"}
-        else:
+        if not filename:
             return {"error": "Code content or valid filename must be provided"}
+        try:
+            # Checked against the allow-list before touching the disk
+            code = read_source_file(filename)
+        except FileNotFoundError:
+            return {"error": "Code content or valid filename must be provided"}
+        except (OSError, UnicodeDecodeError) as e:
+            return {"error": f"Error reading file {filename}: {e}"}
 
     # Detect language if not provided
     if not language:

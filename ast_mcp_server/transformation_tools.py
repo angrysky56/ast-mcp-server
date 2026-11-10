@@ -7,7 +7,6 @@ complementing the existing AST/ASG analysis tools with pattern-based search and 
 
 import json
 import logging
-import os
 import shutil
 
 # Security Note: We import subprocess to run the 'ast-grep' CLI tool.
@@ -23,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Import our existing tools for language detection and validation
+from .path_guard import read_source_file
 from .tools import LANGUAGE_MAP, detect_language, is_placeholder
 
 logger = logging.getLogger(__name__)
@@ -110,10 +110,12 @@ class AstGrepTransformer:
             language = detect_language(code, filename)
 
         # Read from file if code is a placeholder
-        if filename and os.path.exists(filename) and is_placeholder(code):
+        if filename and is_placeholder(code):
             try:
-                code = Path(filename).read_text(encoding="utf-8")
-            except OSError as e:
+                code = read_source_file(filename)  # allow-list checked
+            except FileNotFoundError:
+                pass  # filename was only a language hint
+            except (OSError, UnicodeDecodeError) as e:
                 logger.error("Error reading file %s for search: %s", filename, e)
                 # Fallback to provided code if read fails
 
@@ -458,10 +460,12 @@ def register_transformation_tools(mcp_server: Any) -> None:
                 }
 
             # Read from file if code is a placeholder
-            if filename and os.path.exists(filename) and is_placeholder(code):
+            if filename and is_placeholder(code):
                 try:
-                    code = Path(filename).read_text(encoding="utf-8")
-                except OSError as e:
+                    code = read_source_file(filename)  # allow-list checked
+                except FileNotFoundError:
+                    pass  # filename was only a language hint
+                except (OSError, UnicodeDecodeError) as e:
                     logger.error(
                         "Error reading file %s for transformation: %s", filename, e
                     )
